@@ -1,0 +1,903 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Latency (ms)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"global\",operation=\"read_user\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"global\",operation=\"read_user\"}[1m])) * 1000",
+          "legendFormat": "Global - Reads",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"read_session\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"read_session\"}[1m])) * 1000",
+          "legendFormat": "Regional - Reads",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"login\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"login\"}[1m])) * 1000",
+          "legendFormat": "Regional - Writes",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"read_session_aost\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"read_session_aost\"}[1m])) * 1000",
+          "legendFormat": "Regional - AOST",
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"rbr\",operation=\"read_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"rbr\",operation=\"read_audit\"}[1m])) * 1000",
+          "legendFormat": "RBR - Reads",
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"rbr\",operation=\"create_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"rbr\",operation=\"create_audit\"}[1m])) * 1000",
+          "legendFormat": "RBR - Writes",
+          "refId": "F"
+        }
+      ],
+      "title": "Region 1: aws-us-east-1 (Fast Operations)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Latency (ms)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"global\",operation=\"read_user\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"global\",operation=\"read_user\"}[1m])) * 1000",
+          "legendFormat": "Global - Reads",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"read_session\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"read_session\"}[1m])) * 1000",
+          "legendFormat": "Regional - Reads",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"login\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"login\"}[1m])) * 1000",
+          "legendFormat": "Regional - Writes",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"read_session_aost\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"read_session_aost\"}[1m])) * 1000",
+          "legendFormat": "Regional - AOST",
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"rbr\",operation=\"read_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"rbr\",operation=\"read_audit\"}[1m])) * 1000",
+          "legendFormat": "RBR - Reads",
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"rbr\",operation=\"create_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"rbr\",operation=\"create_audit\"}[1m])) * 1000",
+          "legendFormat": "RBR - Writes",
+          "refId": "F"
+        }
+      ],
+      "title": "Region 2: aws-us-east-2 (Fast Operations)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Latency (ms)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"global\",operation=\"read_user\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"global\",operation=\"read_user\"}[1m])) * 1000",
+          "legendFormat": "Global - Reads",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"read_session\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"read_session\"}[1m])) * 1000",
+          "legendFormat": "Regional - Reads",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"login\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"login\"}[1m])) * 1000",
+          "legendFormat": "Regional - Writes",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"read_session_aost\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"read_session_aost\"}[1m])) * 1000",
+          "legendFormat": "Regional - AOST",
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"rbr\",operation=\"read_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"rbr\",operation=\"read_audit\"}[1m])) * 1000",
+          "legendFormat": "RBR - Reads",
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"rbr\",operation=\"create_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"rbr\",operation=\"create_audit\"}[1m])) * 1000",
+          "legendFormat": "RBR - Writes",
+          "refId": "F"
+        }
+      ],
+      "title": "Region 3: aws-us-west-2 (Fast Operations)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Latency (ms)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 8
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"global\",operation=\"update_user\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"global\",operation=\"update_user\"}[1m])) * 1000",
+          "legendFormat": "Global - Writes",
+          "refId": "A"
+        }
+      ],
+      "title": "Region 1: aws-us-east-1 (Global Writes)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Latency (ms)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 8
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"global\",operation=\"update_user\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"global\",operation=\"update_user\"}[1m])) * 1000",
+          "legendFormat": "Global - Writes",
+          "refId": "A"
+        }
+      ],
+      "title": "Region 2: aws-us-east-2 (Global Writes)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Latency (ms)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 8
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"global\",operation=\"update_user\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"global\",operation=\"update_user\"}[1m])) * 1000",
+          "legendFormat": "Global - Writes",
+          "refId": "A"
+        }
+      ],
+      "title": "Region 3: aws-us-west-2 (Global Writes)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "DOWN"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 16
+      },
+      "id": 7,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "iam_region_status{exported_region=\"aws-us-east-1\"}",
+          "legendFormat": "aws-us-east-1",
+          "refId": "A"
+        }
+      ],
+      "title": "Region 1 Status",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "DOWN"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 16
+      },
+      "id": 8,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "iam_region_status{exported_region=\"aws-us-east-2\"}",
+          "legendFormat": "aws-us-east-2",
+          "refId": "A"
+        }
+      ],
+      "title": "Region 2 Status",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "DOWN"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 16
+      },
+      "id": 9,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "iam_region_status{exported_region=\"aws-us-west-2\"}",
+          "legendFormat": "aws-us-west-2",
+          "refId": "A"
+        }
+      ],
+      "title": "Region 3 Status",
+      "type": "gauge"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["iam", "cockroachdb", "multi-region", "regional-split"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "IAM Demo - Regional Split View",
+  "uid": "iam-demo-regional-split",
+  "version": 0,
+  "weekStart": ""
+}
