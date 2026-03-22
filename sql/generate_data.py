@@ -5,6 +5,7 @@ Creates SQL INSERT statements with 50k+ rows total
 """
 
 import argparse
+import math
 import random
 from datetime import datetime, timedelta
 from uuid import uuid4
@@ -60,6 +61,54 @@ def sql_escape(s):
     """Escape single quotes for SQL"""
     return s.replace("'", "''")
 
+def create_behavior_vector(hour_of_day, day_of_week, primary_region_idx,
+                          time_since_last_login_hours, avg_session_duration_hours,
+                          logins_per_day, failure_rate, avg_actions_per_session):
+    """
+    Create an 8-dimensional behavior vector for a user profile.
+
+    Vector dimensions:
+    1. Hour of day (normalized 0-1)
+    2. Day of week (normalized 0-1)
+    3. Region consistency (0-1, based on primary region index)
+    4. Time since last login (log-scaled, normalized)
+    5. Session duration pattern (normalized)
+    6. Login frequency (normalized)
+    7. Recent failure rate (0-1)
+    8. Activity level (normalized)
+    """
+    # Normalize hour of day (0-23 -> 0-1)
+    v1 = hour_of_day / 23.0
+
+    # Normalize day of week (0-6 -> 0-1)
+    v2 = day_of_week / 6.0
+
+    # Region consistency - encode primary region (0, 1, or 2 -> normalized)
+    v3 = primary_region_idx / 2.0
+
+    # Time since last login (log scale to handle wide range)
+    # Typical range: 1 hour to 168 hours (1 week)
+    # log(1) = 0, log(168) ~= 5.12
+    v4 = min(1.0, math.log(max(1, time_since_last_login_hours)) / 5.12)
+
+    # Session duration (normalize to 0-1, typical range 0.1 to 4 hours)
+    v5 = min(1.0, avg_session_duration_hours / 4.0)
+
+    # Login frequency (normalize to 0-1, typical range 0.1 to 10 logins/day)
+    v6 = min(1.0, logins_per_day / 10.0)
+
+    # Failure rate (already 0-1)
+    v7 = min(1.0, max(0.0, failure_rate))
+
+    # Activity level (normalize to 0-1, typical range 1 to 50 actions/session)
+    v8 = min(1.0, avg_actions_per_session / 50.0)
+
+    return [v1, v2, v3, v4, v5, v6, v7, v8]
+
+def format_vector(vector):
+    """Format a vector as a SQL array literal"""
+    return '[' + ','.join(str(v) for v in vector) + ']'
+
 def write_inserts(file, table, columns, rows, batch_size=1000):
     """Write INSERT statements in batches"""
     file.write(f"\n-- Inserting {len(rows)} rows into {table}\n")
@@ -79,9 +128,20 @@ def write_inserts(file, table, columns, rows, batch_size=1000):
                     # Special handling for crdb_region column - cast to crdb_internal_region
                     if col_name == 'crdb_region':
                         values.append(f"CAST('{sql_escape(val)}' AS crdb_internal_region)")
+                    # Special handling for vector columns - format as array literal
+                    elif col_name and 'vector' in col_name.lower():
+                        values.append(f"'{val}'")
                     else:
                         values.append(f"'{sql_escape(val)}'")
-                elif isinstance(val, (dict, list)):
+                elif isinstance(val, dict):
+                    import json
+                    values.append(f"'{json.dumps(val)}'::JSONB")
+                elif isinstance(val, list) and col_name and 'vector' in col_name.lower():
+                    # Vector column - format as array literal
+                    vector_str = '[' + ','.join(str(v) for v in val) + ']'
+                    values.append(f"'{vector_str}'")
+                elif isinstance(val, list):
+                    # Regular list -> JSONB
                     import json
                     values.append(f"'{json.dumps(val)}'::JSONB")
                 elif hasattr(val, 'hex'):  # UUID object
@@ -262,10 +322,113 @@ def main():
                      ['user_id', 'session_id', 'action', 'resource', 'result', 'timestamp', 'crdb_region', 'metadata'],
                      audit_data, batch_size=1000)
 
+        # Generate user behavior profiles (8D vectors)
+        # Create different user categories with distinct patterns
+        print("Generating user behavior profiles...")
+        profile_data = []
+
+        for i, user_id in enumerate(user_ids):
+            # Categorize users into different behavior patterns
+            category = i % 5
+
+            if category == 0:
+                # Category 0: Business hours users (9-5, weekdays, Region 1)
+                profile_type = '9-5 workers (Region 1)'
+                hour = random.gauss(13, 3)  # Center around 1 PM
+                day = random.randint(0, 4)  # Weekdays only
+                region_idx = 0  # Primary region 1
+                time_since_last = random.gauss(24, 8)  # Daily login
+                session_duration = random.gauss(2, 0.5)  # ~2 hour sessions
+                login_freq = random.gauss(1, 0.2)  # ~1 login/day
+                failure_rate = 0.02  # Low failure rate
+                activity = random.gauss(15, 5)  # Moderate activity
+
+            elif category == 1:
+                # Category 1: Business hours users (9-5, weekdays, Region 2)
+                profile_type = '9-5 workers (Region 2)'
+                hour = random.gauss(13, 3)
+                day = random.randint(0, 4)
+                region_idx = 1  # Primary region 2
+                time_since_last = random.gauss(24, 8)
+                session_duration = random.gauss(2, 0.5)
+                login_freq = random.gauss(1, 0.2)
+                failure_rate = 0.02
+                activity = random.gauss(15, 5)
+
+            elif category == 2:
+                # Category 2: Night shift users (Region 3)
+                profile_type = 'Night shift (Region 3)'
+                hour = random.gauss(2, 2)  # Center around 2 AM
+                day = random.randint(0, 6)  # Any day
+                region_idx = 2  # Primary region 3
+                time_since_last = random.gauss(24, 8)
+                session_duration = random.gauss(3, 0.5)  # Longer sessions
+                login_freq = random.gauss(1, 0.2)
+                failure_rate = 0.03
+                activity = random.gauss(20, 5)  # Higher activity
+
+            elif category == 3:
+                # Category 3: Global travelers (inconsistent patterns)
+                profile_type = 'Global travelers'
+                hour = random.uniform(0, 23)  # Any time
+                day = random.randint(0, 6)  # Any day
+                region_idx = random.randint(0, 2)  # Random region
+                time_since_last = random.gauss(48, 24)  # Less frequent
+                session_duration = random.gauss(1, 0.3)  # Shorter sessions
+                login_freq = random.gauss(0.5, 0.2)  # ~2 days between logins
+                failure_rate = 0.05  # Higher failure rate
+                activity = random.gauss(10, 3)  # Lower activity
+
+            else:  # category == 4
+                # Category 4: Irregular users (weekends, odd hours)
+                profile_type = 'Irregular users'
+                hour = random.choice([random.gauss(9, 2), random.gauss(21, 2)])  # Morning or evening
+                day = random.randint(5, 6)  # Weekends
+                region_idx = random.randint(0, 2)
+                time_since_last = random.gauss(72, 48)  # Weekly-ish
+                session_duration = random.gauss(1.5, 0.5)
+                login_freq = random.gauss(0.3, 0.1)
+                failure_rate = 0.04
+                activity = random.gauss(12, 4)
+
+            # Clamp values to valid ranges
+            hour = max(0, min(23, hour))
+            day = max(0, min(6, int(day)))
+            time_since_last = max(1, time_since_last)
+            session_duration = max(0.1, session_duration)
+            login_freq = max(0.1, login_freq)
+            failure_rate = max(0, min(1, failure_rate))
+            activity = max(1, activity)
+
+            # Create the behavior vector
+            vector = create_behavior_vector(
+                hour_of_day=hour,
+                day_of_week=day,
+                primary_region_idx=region_idx,
+                time_since_last_login_hours=time_since_last,
+                avg_session_duration_hours=session_duration,
+                logins_per_day=login_freq,
+                failure_rate=failure_rate,
+                avg_actions_per_session=activity
+            )
+
+            profile_data.append([
+                user_id,
+                vector,  # behavior_vector
+                'static',  # profile_type
+                100,  # sample_count (synthetic baseline)
+                generate_timestamp(30)  # last_updated
+            ])
+
+        write_inserts(f, 'user_behavior_profiles',
+                     ['user_id', 'behavior_vector', 'profile_type', 'sample_count', 'last_updated'],
+                     profile_data)
+
     print(f"\nData generation complete!")
     print(f"Output written to: {output_file}")
-    total_rows = NUM_USERS + NUM_ROLES + len(user_role_data) + NUM_SESSIONS + NUM_AUDIT_LOGS
+    total_rows = NUM_USERS + NUM_ROLES + len(user_role_data) + NUM_SESSIONS + NUM_AUDIT_LOGS + NUM_USERS
     print(f"Total rows: {total_rows:,}")
+    print(f"  Behavior profiles: {NUM_USERS}")
 
 if __name__ == '__main__':
     main()

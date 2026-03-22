@@ -34,6 +34,12 @@ region_status = Gauge(
     ['region']
 )
 
+anomaly_counter = Counter(
+    'iam_anomalies_detected_total',
+    'Total number of login anomalies detected',
+    ['region', 'severity']
+)
+
 
 class OpStats():
     """Tracks statistics for a single operation type"""
@@ -71,6 +77,7 @@ class DemoStats():
     OP_READ_SESSION = 'read_session'
     OP_READ_SESSION_AOST = 'read_session_aost'
     OP_READ_AUDIT = 'read_audit'
+    OP_ANOMALY_DETECTION = 'anomaly_detection'
 
     def __init__(self, reporting_interval_secs: int) -> None:
         self.reporting_secs = reporting_interval_secs
@@ -91,7 +98,8 @@ class DemoStats():
             DemoStats.OP_LOGOUT,
             DemoStats.OP_READ_SESSION,
             DemoStats.OP_READ_SESSION_AOST,
-            DemoStats.OP_READ_AUDIT
+            DemoStats.OP_READ_AUDIT,
+            DemoStats.OP_ANOMALY_DETECTION
         ]
 
         # Map operations to table types for Prometheus labels
@@ -104,12 +112,17 @@ class DemoStats():
             DemoStats.OP_READ_SESSION: 'regional',
             DemoStats.OP_READ_SESSION_AOST: 'regional',
             DemoStats.OP_CREATE_AUDIT: 'rbr',
-            DemoStats.OP_READ_AUDIT: 'rbr'
+            DemoStats.OP_READ_AUDIT: 'rbr',
+            DemoStats.OP_ANOMALY_DETECTION: 'vector'
         }
 
         self.stats_objs = {}
         for op_name in self.op_names:
             self.stats_objs[op_name] = OpStats(op_name)
+
+        # Anomaly counter
+        self.anomaly_count = 0
+        self.last_anomaly_count = 0
 
     def set_connection_info(self, region: str, node_id: int) -> None:
         """Set the region and node_id for display and update Prometheus status"""
@@ -146,6 +159,11 @@ class DemoStats():
                 region=region
             ).inc()
 
+    def increment_anomaly_count(self) -> None:
+        """Increment the anomaly detection counter"""
+        with self.lock:
+            self.anomaly_count += 1
+
     def calc_and_reset_stats(self) -> None:
         """Calculate aggregate statistics and reset counters"""
         with self.lock:
@@ -161,6 +179,10 @@ class DemoStats():
                 # Reset counting stats
                 stat.count = 0
                 stat.ms_sum = 0.0
+
+            # Store anomaly count for this interval
+            self.last_anomaly_count = self.anomaly_count
+            self.anomaly_count = 0
 
     def display_if_ready(self):
         """Display stats if the reporting interval has elapsed"""
@@ -215,6 +237,14 @@ class DemoStats():
             print(f"  reads:  {rbr_reads_ms:>8.2f} ms avg")
             print(f"  writes: {rbr_writes_ms:>8.2f} ms avg")
             print()
+
+            # Show anomaly detection stats if enabled
+            anomaly_stat = self.stats_objs.get(DemoStats.OP_ANOMALY_DETECTION)
+            if anomaly_stat and anomaly_stat.last_count > 0:
+                print('AI/Vector Operations (anomaly detection)')
+                print(f"  detection: {anomaly_stat.last_ms_avg:>8.2f} ms avg")
+                print(f"  anomalies: {self.last_anomaly_count} detected (last {self.reporting_secs}s)")
+                print()
 
 
 class DemoTimer():

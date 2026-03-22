@@ -10,9 +10,9 @@ Demonstrates multi-region table types and resiliency:
 Focus: Showing how IAM systems can survive region failures with CockroachDB
 """
 
-from datetime import datetime as dt
+from datetime import datetime as dt, timezone
 import os
-from random import randint, choice
+from random import randint, choice, random
 import signal
 import sys
 from uuid import uuid4
@@ -20,20 +20,33 @@ from uuid import uuid4
 from prometheus_client import start_http_server
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine as SAEngine
+from sqlalchemy.sql import text
 
 from iam.transactions import (
     get_gateway_region, get_node_id,
     get_user, get_users, update_last_login,
     get_role, get_roles, get_user_roles,
     create_session, end_session, get_session, get_session_aost,
-    create_audit_log, get_recent_audit_log
+    create_audit_log, get_recent_audit_log,
+    detect_login_anomaly, log_login_anomaly,
+    compute_current_login_vector, update_user_behavior_profile
 )
-from iam.helpers import DemoStats, DemoTimer, run_transaction
+from iam.helpers import DemoStats, DemoTimer, run_transaction, anomaly_counter
 
 # Configuration
 STATS_INTERVAL_SECS = 5
 NUM_AUDIT_ACTIONS = 5  # Number of audit log entries per session
 METRICS_PORT = int(os.getenv('METRICS_PORT', '8000'))  # Port for Prometheus metrics endpoint
+
+# Anomaly detection configuration
+ANOMALY_DETECTION_ENABLED = os.getenv('ENABLE_ANOMALY_DETECTION', 'true').lower() == 'true'
+ANOMALY_THRESHOLD = float(os.getenv('ANOMALY_THRESHOLD', '0.3'))  # Cosine distance threshold
+ANOMALY_INJECTION_RATE = float(os.getenv('ANOMALY_INJECTION_RATE', '0.10'))  # 10% of logins are anomalous
+PROFILE_LEARNING_ENABLED = os.getenv('ENABLE_PROFILE_LEARNING', 'false').lower() == 'true'
+LEARNING_RATE = float(os.getenv('LEARNING_RATE', '0.1'))  # Weight for new observations
+
+# Regions list for anomaly detection
+REGIONS = ['aws-us-east-1', 'aws-us-east-2', 'aws-us-west-2']
 
 # Check for CRDB_URL first, then DB_URI, then use default
 DB_URI = os.getenv('CRDB_URL') or os.getenv('DB_URI') or 'cockroachdb://root@127.0.0.1:26257/iam_demo?application_name=iam_demo'
@@ -51,10 +64,11 @@ RESOURCES = [
 
 
 def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
-                   op_timer: DemoTimer, stats: DemoStats):
+                   op_timer: DemoTimer, stats: DemoStats, region: str):
     """
     Execute one iteration of the demo flow:
     1. Login (create session) - Regional write
+    1b. Detect login anomaly (if enabled) - Vector similarity search
     2. Check user info - Global read
     3. Update last login - Global write
     4. Check role/permissions - Global read
@@ -69,11 +83,29 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
     user_id = choice(user_ids)
     role_id = choice(role_ids)
 
+    # Decide if this login should be anomalous (for demo purposes)
+    should_inject_anomaly = (random() < ANOMALY_INJECTION_RATE) if ANOMALY_DETECTION_ENABLED else False
+
     # ==========================================================================
     # 1. LOGIN - Create session (Regional write)
     # ==========================================================================
     session_id = uuid4()
-    login_time = dt.now()
+    login_time = dt.now(timezone.utc)
+
+    # Inject anomalous behavior for demo if selected
+    if should_inject_anomaly:
+        # Make this login anomalous by adjusting time or region
+        anomaly_type = choice(['time', 'region'])
+        if anomaly_type == 'time':
+            # Login at unusual time (middle of night if normally daytime, vice versa)
+            if login_time.hour >= 9 and login_time.hour <= 17:
+                # Normal work hours - shift to night
+                login_time = login_time.replace(hour=3)
+            else:
+                # Non-work hours - shift to work hours
+                login_time = login_time.replace(hour=13)
+        # Note: We can't actually change the region the app connects from,
+        # but the anomaly detection will still work based on time patterns
 
     op_timer.start()
     run_transaction(
@@ -84,6 +116,71 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
         )
     )
     stats.add_to_stats(DemoStats.OP_LOGIN, op_timer.stop())
+
+    # ==========================================================================
+    # 1b. ANOMALY DETECTION - Check if login is anomalous (Vector search)
+    # ==========================================================================
+    if ANOMALY_DETECTION_ENABLED:
+        op_timer.start()
+        result = run_transaction(
+            db_engine,
+            lambda conn: detect_login_anomaly(
+                conn, user_id, session_id, login_time, region, REGIONS, ANOMALY_THRESHOLD
+            )
+        )
+        anomaly_time = op_timer.stop()
+        stats.add_to_stats(DemoStats.OP_ANOMALY_DETECTION, anomaly_time)
+
+        is_anomaly, anomaly_score, details = result
+
+        if is_anomaly:
+            # Determine severity based on anomaly score
+            if anomaly_score < 0.5:
+                severity = 'low'
+            elif anomaly_score < 0.7:
+                severity = 'medium'
+            else:
+                severity = 'high'
+
+            # Increment Prometheus counter
+            anomaly_counter.labels(region=region, severity=severity).inc()
+
+            # Log the anomaly
+            current_vector = compute_current_login_vector(login_time, region, REGIONS)
+            profile = run_transaction(
+                db_engine,
+                lambda conn: conn.execute(
+                    text("SELECT behavior_vector FROM user_behavior_profiles WHERE user_id = :user_id"),
+                    {"user_id": user_id}
+                ).one_or_none()
+            )
+
+            if profile:
+                profile_vector_str = profile[0]
+                if isinstance(profile_vector_str, str):
+                    profile_vector = [float(x) for x in profile_vector_str.strip('[]').split(',')]
+                else:
+                    profile_vector = list(profile_vector_str)
+
+                run_transaction(
+                    db_engine,
+                    lambda conn: log_login_anomaly(
+                        conn, user_id, session_id, anomaly_score,
+                        current_vector, profile_vector, details
+                    )
+                )
+                stats.increment_anomaly_count()
+
+        # Update user profile if learning is enabled
+        if PROFILE_LEARNING_ENABLED and not is_anomaly:
+            # Only learn from normal logins
+            current_vector = compute_current_login_vector(login_time, region, REGIONS)
+            run_transaction(
+                db_engine,
+                lambda conn: update_user_behavior_profile(
+                    conn, user_id, current_vector, LEARNING_RATE
+                )
+            )
 
     # ==========================================================================
     # 2. READ USER - Check user info (Global read)
@@ -138,7 +235,7 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
     # ==========================================================================
     # 6. LOGOUT - End session (Regional write)
     # ==========================================================================
-    logout_time = dt.now()
+    logout_time = dt.now(timezone.utc)
 
     op_timer.start()
     run_transaction(
@@ -234,9 +331,22 @@ def main():
     print(f"{len(role_ids)} roles found")
     print()
 
+    # Display anomaly detection status
+    if ANOMALY_DETECTION_ENABLED:
+        print(f"Anomaly detection: ENABLED (threshold={ANOMALY_THRESHOLD})")
+        print(f"Anomaly injection rate: {ANOMALY_INJECTION_RATE*100:.0f}%")
+        if PROFILE_LEARNING_ENABLED:
+            print(f"Profile learning: ENABLED (rate={LEARNING_RATE})")
+        else:
+            print(f"Profile learning: DISABLED (static profiles)")
+        print()
+    else:
+        print("Anomaly detection: DISABLED")
+        print()
+
     # Main demo loop
     while True:
-        demo_flow_once(db_engine, user_ids, role_ids, op_timer, stats)
+        demo_flow_once(db_engine, user_ids, role_ids, op_timer, stats, region)
         stats.display_if_ready()
 
 

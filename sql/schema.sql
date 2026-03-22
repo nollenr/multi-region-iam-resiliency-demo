@@ -58,6 +58,34 @@ CREATE TABLE user_roles (
     CONSTRAINT fk_role FOREIGN KEY (role_id) REFERENCES roles (id) ON DELETE CASCADE
 ) LOCALITY GLOBAL;
 
+-- User behavior profiles - stores learned behavior patterns as vectors
+-- GLOBAL because user profiles need to be accessible from any region for anomaly detection
+-- Vector dimensions (8D):
+--   1. Hour of day (0-1)
+--   2. Day of week (0-1)
+--   3. Region consistency (0-1)
+--   4. Time since last login (log-scaled, 0-1)
+--   5. Session duration pattern (0-1)
+--   6. Login frequency (0-1)
+--   7. Recent failure rate (0-1)
+--   8. Activity level (0-1)
+CREATE TABLE user_behavior_profiles (
+    user_id UUID PRIMARY KEY,
+    behavior_vector VECTOR(8) NOT NULL,
+    profile_type STRING DEFAULT 'static', -- 'static' or 'learned'
+    sample_count INT DEFAULT 0,
+    last_updated TIMESTAMPTZ DEFAULT now(),
+    CONSTRAINT fk_profile_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) LOCALITY GLOBAL;
+
+-- Create vector index for fast similarity search
+CREATE INDEX user_behavior_vector_idx ON user_behavior_profiles
+    USING HNSW (behavior_vector vector_cosine_ops);
+
+-- Alternative index syntax (if above doesn't work):
+-- CREATE INDEX user_behavior_vector_idx ON user_behavior_profiles
+--     USING HNSW (behavior_vector) WITH (distance='cosine');
+
 -- =============================================================================
 -- REGIONAL TABLES - Fast reads/writes in primary region
 -- =============================================================================
@@ -97,4 +125,23 @@ CREATE TABLE audit_logs (
     INDEX audit_user_idx (user_id),
     INDEX audit_session_idx (session_id),
     INDEX audit_timestamp_idx (timestamp)
+) LOCALITY REGIONAL BY ROW;
+
+-- Login anomalies table - tracks detected anomalous login behavior
+-- REGIONAL BY ROW so each region's anomaly data stays local
+-- CockroachDB automatically adds crdb_region column
+CREATE TABLE login_anomalies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    session_id UUID NOT NULL,
+    anomaly_score FLOAT NOT NULL,
+    current_vector VECTOR(8),
+    profile_vector VECTOR(8),
+    detected_at TIMESTAMPTZ DEFAULT now(),
+    anomaly_details JSONB,
+    INDEX anomaly_user_idx (user_id),
+    INDEX anomaly_score_idx (anomaly_score),
+    INDEX anomaly_timestamp_idx (detected_at),
+    CONSTRAINT fk_anomaly_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT fk_anomaly_session FOREIGN KEY (session_id) REFERENCES sessions (id) ON DELETE CASCADE
 ) LOCALITY REGIONAL BY ROW;
