@@ -455,3 +455,38 @@ docker-compose down -v
 ## License
 
 This demo is provided as-is for demonstration purposes.
+
+
+# Anomaly Detection
+Low Severity (0.3-0.5)
+Minor deviations from normal behavior:
+
+User normally logs in 9am-5pm, but logs in at 7pm (evening, but not middle of night)
+User normally logs in weekdays, but logs in on Saturday
+User logs in from a different region in the same country (e.g., us-east-1 → us-east-2)
+Slightly longer than usual time between logins
+Example: A 9-5 worker in us-east-1 logs in at 8pm on a Tuesday from us-east-1
+
+Medium Severity (0.5-0.7)
+Moderate deviations - multiple factors slightly off or one factor very off:
+
+User normally logs in during day, but logs in at 2am-4am
+User hasn't logged in for much longer than normal (weeks instead of daily)
+User logs in from a completely different region (different time zone/country)
+Combination of 2 unusual factors (e.g., unusual time + unusual day)
+Example: A 9-5 worker in us-east-1 logs in at 2am on a weekday, or logs in from us-west-2 at 11am
+
+High Severity (>0.7)
+Major deviations - multiple factors very different:
+
+User normally logs in 9-5 weekdays from us-east-1, but now: 3am Sunday from us-west-2
+Combination of unusual time + unusual region + unusual day of week
+Pattern completely opposite to learned behavior (global travelers who suddenly stay put, or vice versa)
+Very long gap since last login combined with unusual time/location
+Example: A regular 9-5 us-east-1 worker logs in at 3am on Sunday from a different region they've never used before
+
+The cosine distance increases as:
+
+More behavior dimensions deviate from normal
+Individual dimensions deviate more significantly
+This creates a natural gradient where small changes trigger low-severity alerts, while completely abnormal behavior (potential account compromise) triggers high-severity alerts.
