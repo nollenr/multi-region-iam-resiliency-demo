@@ -64,7 +64,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 13,
         "w": 8,
         "x": 0,
         "y": 0
@@ -89,7 +89,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"global\",operation=\"read_user\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"global\",operation=\"read_user\"}[1m])) * 1000",
-          "legendFormat": "Global - Reads",
+          "legendFormat": "Global (users, roles) - Reads",
           "refId": "A"
         },
         {
@@ -98,7 +98,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"read_session\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"read_session\"}[1m])) * 1000",
-          "legendFormat": "Regional - Reads",
+          "legendFormat": "Regional (sessions) - Reads",
           "refId": "B"
         },
         {
@@ -107,7 +107,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"login\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"login\"}[1m])) * 1000",
-          "legendFormat": "Regional - Writes",
+          "legendFormat": "Regional (sessions) - Writes",
           "refId": "C"
         },
         {
@@ -116,7 +116,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"read_session_aost\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"read_session_aost\"}[1m])) * 1000",
-          "legendFormat": "Regional - AOST",
+          "legendFormat": "Regional (sessions) - AOST",
           "refId": "D"
         },
         {
@@ -125,7 +125,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"rbr\",operation=\"read_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"rbr\",operation=\"read_audit\"}[1m])) * 1000",
-          "legendFormat": "RBR - Reads",
+          "legendFormat": "RBR (audit_logs) - Reads",
           "refId": "E"
         },
         {
@@ -134,7 +134,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"rbr\",operation=\"create_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"rbr\",operation=\"create_audit\"}[1m])) * 1000",
-          "legendFormat": "RBR - Writes",
+          "legendFormat": "RBR (audit_logs) - Writes",
           "refId": "F"
         }
       ],
@@ -196,7 +196,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 13,
         "w": 8,
         "x": 8,
         "y": 0
@@ -221,7 +221,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"global\",operation=\"read_user\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"global\",operation=\"read_user\"}[1m])) * 1000",
-          "legendFormat": "Global - Reads",
+          "legendFormat": "Global (users, roles) - Reads",
           "refId": "A"
         },
         {
@@ -230,7 +230,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"read_session\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"read_session\"}[1m])) * 1000",
-          "legendFormat": "Regional - Reads",
+          "legendFormat": "Regional (sessions) - Reads",
           "refId": "B"
         },
         {
@@ -239,7 +239,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"login\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"login\"}[1m])) * 1000",
-          "legendFormat": "Regional - Writes",
+          "legendFormat": "Regional (sessions) - Writes",
           "refId": "C"
         },
         {
@@ -248,7 +248,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"read_session_aost\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"read_session_aost\"}[1m])) * 1000",
-          "legendFormat": "Regional - AOST",
+          "legendFormat": "Regional (sessions) - AOST",
           "refId": "D"
         },
         {
@@ -257,7 +257,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"rbr\",operation=\"read_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"rbr\",operation=\"read_audit\"}[1m])) * 1000",
-          "legendFormat": "RBR - Reads",
+          "legendFormat": "RBR (audit_logs) - Reads",
           "refId": "E"
         },
         {
@@ -266,7 +266,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"rbr\",operation=\"create_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"rbr\",operation=\"create_audit\"}[1m])) * 1000",
-          "legendFormat": "RBR - Writes",
+          "legendFormat": "RBR (audit_logs) - Writes",
           "refId": "F"
         }
       ],
@@ -328,7 +328,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 13,
         "w": 8,
         "x": 16,
         "y": 0
@@ -353,7 +353,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"global\",operation=\"read_user\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"global\",operation=\"read_user\"}[1m])) * 1000",
-          "legendFormat": "Global - Reads",
+          "legendFormat": "Global (users, roles) - Reads",
           "refId": "A"
         },
         {
@@ -362,7 +362,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"read_session\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"read_session\"}[1m])) * 1000",
-          "legendFormat": "Regional - Reads",
+          "legendFormat": "Regional (sessions) - Reads",
           "refId": "B"
         },
         {
@@ -371,7 +371,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"login\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"login\"}[1m])) * 1000",
-          "legendFormat": "Regional - Writes",
+          "legendFormat": "Regional (sessions) - Writes",
           "refId": "C"
         },
         {
@@ -380,7 +380,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"read_session_aost\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"read_session_aost\"}[1m])) * 1000",
-          "legendFormat": "Regional - AOST",
+          "legendFormat": "Regional (sessions) - AOST",
           "refId": "D"
         },
         {
@@ -389,7 +389,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"rbr\",operation=\"read_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"rbr\",operation=\"read_audit\"}[1m])) * 1000",
-          "legendFormat": "RBR - Reads",
+          "legendFormat": "RBR (audit_logs) - Reads",
           "refId": "E"
         },
         {
@@ -398,7 +398,7 @@
             "uid": "prometheus"
           },
           "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"rbr\",operation=\"create_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"rbr\",operation=\"create_audit\"}[1m])) * 1000",
-          "legendFormat": "RBR - Writes",
+          "legendFormat": "RBR (audit_logs) - Writes",
           "refId": "F"
         }
       ],
@@ -463,7 +463,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 8
+        "y": 13
       },
       "id": 4,
       "options": {
@@ -550,7 +550,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 8
+        "y": 13
       },
       "id": 5,
       "options": {
@@ -637,7 +637,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 8
+        "y": 13
       },
       "id": 6,
       "options": {
@@ -770,7 +770,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 16
+        "y": 21
       },
       "id": 10,
       "options": {
@@ -921,7 +921,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 16
+        "y": 21
       },
       "id": 11,
       "options": {
@@ -1072,7 +1072,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 16
+        "y": 21
       },
       "id": 12,
       "options": {
@@ -1162,7 +1162,7 @@
         "h": 5,
         "w": 8,
         "x": 0,
-        "y": 24
+        "y": 29
       },
       "id": 7,
       "options": {
@@ -1234,7 +1234,7 @@
         "h": 5,
         "w": 8,
         "x": 8,
-        "y": 24
+        "y": 29
       },
       "id": 8,
       "options": {
@@ -1306,7 +1306,7 @@
         "h": 5,
         "w": 8,
         "x": 16,
-        "y": 24
+        "y": 29
       },
       "id": 9,
       "options": {
