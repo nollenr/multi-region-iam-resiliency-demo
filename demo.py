@@ -51,6 +51,12 @@ REGIONS = ['aws-us-east-1', 'aws-us-east-2', 'aws-us-west-2']
 # Check for CRDB_URL first, then DB_URI, then use default
 DB_URI = os.getenv('CRDB_URL') or os.getenv('DB_URI') or 'cockroachdb://root@127.0.0.1:26257/iam_demo?application_name=iam_demo'
 
+# Ensure we're using psycopg (psycopg3) instead of psycopg2
+if DB_URI.startswith('cockroachdb://'):
+    DB_URI = DB_URI.replace('cockroachdb://', 'cockroachdb+psycopg://', 1)
+elif DB_URI.startswith('postgresql://'):
+    DB_URI = DB_URI.replace('postgresql://', 'postgresql+psycopg://', 1)
+
 # Common actions and resources for audit logs
 ACTIONS = [
     'view_dashboard', 'update_profile', 'view_report', 'create_resource',
