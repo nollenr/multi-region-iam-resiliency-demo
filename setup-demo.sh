@@ -146,14 +146,51 @@ if [ "$PRIVATE_IP" == "$FIRST_IP" ]; then
     sed -i "s|<REGION2_APP_HOST>|${IP_ARRAY[1]}|g" prometheus.yml
     sed -i "s|<REGION3_APP_HOST>|${IP_ARRAY[2]}|g" prometheus.yml
 
-    sed -i "s|region: 'aws-us-east-1'|region: '${REGION_ARRAY[0]}'|g" prometheus.yml
-    sed -i "s|region: 'aws-us-east-2'|region: '${REGION_ARRAY[1]}'|g" prometheus.yml
-    sed -i "s|region: 'aws-us-west-2'|region: '${REGION_ARRAY[2]}'|g" prometheus.yml
+    # Use two-pass replacement to avoid collision when new region names match old ones
+    # First pass: Replace with temporary placeholders
+    sed -i "s|region: 'aws-us-east-1'|region: '__TEMP_REGION_1__'|g" prometheus.yml
+    sed -i "s|region: 'aws-us-east-2'|region: '__TEMP_REGION_2__'|g" prometheus.yml
+    sed -i "s|region: 'aws-us-west-2'|region: '__TEMP_REGION_3__'|g" prometheus.yml
+
+    # Second pass: Replace placeholders with actual region names
+    sed -i "s|region: '__TEMP_REGION_1__'|region: '${REGION_ARRAY[0]}'|g" prometheus.yml
+    sed -i "s|region: '__TEMP_REGION_2__'|region: '${REGION_ARRAY[1]}'|g" prometheus.yml
+    sed -i "s|region: '__TEMP_REGION_3__'|region: '${REGION_ARRAY[2]}'|g" prometheus.yml
 
     echo -e "${GREEN}✓ prometheus.yml updated${NC}"
     echo "  Region 1: ${REGION_ARRAY[0]} @ ${IP_ARRAY[0]}"
     echo "  Region 2: ${REGION_ARRAY[1]} @ ${IP_ARRAY[1]}"
     echo "  Region 3: ${REGION_ARRAY[2]} @ ${IP_ARRAY[2]}"
+    echo ""
+
+    # Update Grafana dashboards
+    echo "Updating Grafana dashboards with new regions..."
+    if [ ! -d "grafana/dashboards" ]; then
+        echo -e "${RED}Error: grafana/dashboards directory not found${NC}"
+        exit 1
+    fi
+
+    # Create backups of dashboard files
+    for dashboard in grafana/dashboards/*.json; do
+        if [ -f "$dashboard" ]; then
+            cp "$dashboard" "${dashboard}.bak"
+        fi
+    done
+
+    # Update region names in all dashboard JSON files
+    # Use two-pass replacement to avoid collision when new region names match old ones
+    # First pass: Replace with temporary placeholders
+    sed -i "s|aws-us-east-1|__TEMP_REGION_1__|g" grafana/dashboards/*.json
+    sed -i "s|aws-us-east-2|__TEMP_REGION_2__|g" grafana/dashboards/*.json
+    sed -i "s|aws-us-west-2|__TEMP_REGION_3__|g" grafana/dashboards/*.json
+
+    # Second pass: Replace placeholders with actual region names
+    sed -i "s|__TEMP_REGION_1__|${REGION_ARRAY[0]}|g" grafana/dashboards/*.json
+    sed -i "s|__TEMP_REGION_2__|${REGION_ARRAY[1]}|g" grafana/dashboards/*.json
+    sed -i "s|__TEMP_REGION_3__|${REGION_ARRAY[2]}|g" grafana/dashboards/*.json
+
+    echo -e "${GREEN}✓ Grafana dashboards updated${NC}"
+    echo "  All dashboards updated with new region names"
     echo ""
 
     # Start docker-compose
