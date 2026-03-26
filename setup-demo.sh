@@ -306,6 +306,22 @@ else
     echo ""
 fi
 
+# Create demo-env.sh for easy sourcing of environment variables
+echo "Creating demo-env.sh for environment variables..."
+cat > demo-env.sh << EOF
+# Demo environment variables
+# Source this file to set up your environment: source demo-env.sh
+
+export COCKROACH_API_KEY="$COCKROACH_API_KEY"
+export CLUSTER_ID="$CLUSTER_ID"
+export CRDB_URL="$CRDB_URL"
+EOF
+
+chmod 644 demo-env.sh
+echo -e "${GREEN}✓ demo-env.sh created${NC}"
+echo "  To reuse these variables: source demo-env.sh"
+echo ""
+
 # Start demo.py
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}Starting IAM Demo Application${NC}"
