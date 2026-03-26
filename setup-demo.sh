@@ -9,28 +9,73 @@ NC='\033[0m' # No Color
 
 # Usage function
 usage() {
-    echo "Usage: $0 <connection-string> <password> \"<region1> <region2> <region3>\" \"<ip1> <ip2> <ip3>\""
+    echo "Usage: $0 <password> <api-key> <cluster-id>"
+    echo ""
+    echo "Arguments:"
+    echo "  password   - CockroachDB user password"
+    echo "  api-key    - CockroachDB Cloud API key for allowlist management"
+    echo "  cluster-id - CockroachDB Cloud cluster ID"
+    echo ""
+    echo "Required environment variables:"
+    echo "  CRDB_CERT_URL       - Database connection string"
+    echo "  DATABASE_REGIONS    - Comma-separated list of regions (e.g., \"aws-us-east-2,aws-ca-central-1,aws-us-west-2\")"
+    echo ""
+    echo "Optional environment variables:"
+    echo "  APP_PRIVATE_IP_LIST - Comma-separated list of app server private IPs (e.g., \"10.0.1.5,10.0.2.5,10.0.3.5\")"
+    echo "                        If not set, this server is treated as a non-primary region (skips Prometheus/Grafana setup)"
     echo ""
     echo "Example:"
-    echo "  $0 \\"
-    echo "    \"postgresql://ron@nollen-iam-demo.cloud:26257/iam_demo?sslmode=verify-full&sslrootcert=\$HOME/Library/CockroachCloud/certs/cert.crt\" \\"
-    echo "    \"mypassword\" \\"
-    echo "    \"aws-us-east-1 aws-us-east-2 aws-us-west-2\" \\"
-    echo "    \"10.0.1.5 10.0.2.5 10.0.3.5\""
+    echo "  export CRDB_CERT_URL=\"postgresql://ron@nollen-iam-demo.cloud:26257/iam_demo?sslmode=verify-full&sslrootcert=\$HOME/Library/CockroachCloud/certs/cert.crt\""
+    echo "  export DATABASE_REGIONS=\"aws-us-east-2,aws-ca-central-1,aws-us-west-2\""
+    echo "  export APP_PRIVATE_IP_LIST=\"10.0.1.5,10.0.2.5,10.0.3.5\""
+    echo "  $0 \"mypassword\" \"your-api-key-here\" \"nollen-iam-demo-w7v\""
     exit 1
 }
 
 # Check argument count
-if [ "$#" -ne 4 ]; then
-    echo -e "${RED}Error: Expected 4 arguments, got $#${NC}"
+if [ "$#" -ne 3 ]; then
+    echo -e "${RED}Error: Expected 3 arguments (password, api-key, and cluster-id), got $#${NC}"
     echo ""
     usage
 fi
 
-CONNECTION_STRING="$1"
-PASSWORD="$2"
-REGIONS="$3"
-IPS="$4"
+PASSWORD="$1"
+COCKROACH_API_KEY="$2"
+CLUSTER_ID="$3"
+
+# Validate arguments
+if [ -z "$PASSWORD" ]; then
+    echo -e "${RED}Error: Password cannot be empty${NC}"
+    exit 1
+fi
+
+if [ -z "$COCKROACH_API_KEY" ]; then
+    echo -e "${RED}Error: API key cannot be empty${NC}"
+    exit 1
+fi
+
+if [ -z "$CLUSTER_ID" ]; then
+    echo -e "${RED}Error: Cluster ID cannot be empty${NC}"
+    exit 1
+fi
+
+# Check for required environment variables
+if [ -z "$CRDB_CERT_URL" ]; then
+    echo -e "${RED}Error: CRDB_CERT_URL environment variable is not set${NC}"
+    echo ""
+    usage
+fi
+
+if [ -z "$DATABASE_REGIONS" ]; then
+    echo -e "${RED}Error: DATABASE_REGIONS environment variable is not set${NC}"
+    echo ""
+    usage
+fi
+
+# Assign to local variables for compatibility with rest of script
+CONNECTION_STRING="$CRDB_CERT_URL"
+REGIONS="$DATABASE_REGIONS"
+IPS="${APP_PRIVATE_IP_LIST:-}"  # Optional - empty if not set
 
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}IAM Demo Setup Script${NC}"
@@ -40,23 +85,17 @@ echo ""
 # Pre-flight checks
 echo -e "${YELLOW}Pre-flight Checks:${NC}"
 echo ""
-echo "Before running this script, you must complete the following:"
-echo "  1. Add the PUBLIC IP addresses of all 3 app servers to the CockroachDB Cloud IP allowlist"
-echo "     (You can find these IPs in your Terraform output)"
-echo "  2. Download the CockroachDB Cloud certificate to all app servers"
-echo "     (Use the default location from the 'Connect' modal in CockroachDB Cloud)"
+echo "IMPORTANT: The API Key must be attached to a Service Account that includes"
+echo "\"Cluster Administrator\" with a scope of the cluster being configured."
+echo ""
+echo "This script will automatically:"
+echo "  ✓ Add this server's public IP to the CockroachDB Cloud IP allowlist"
+echo "  ✓ Configure Prometheus and Grafana (on first server only)"
+echo "  ✓ Start the IAM demo application"
 echo ""
 
-read -p "Have you completed BOTH of these tasks? (y/n): " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "${RED}Please complete the pre-flight tasks before running this script.${NC}"
-    exit 1
-fi
-echo ""
-
-# Validate regions
-read -ra REGION_ARRAY <<< "$REGIONS"
+# Validate regions (comma-separated)
+IFS=',' read -ra REGION_ARRAY <<< "$REGIONS"
 REGION_COUNT=${#REGION_ARRAY[@]}
 if [ "$REGION_COUNT" -ne 3 ]; then
     echo -e "${RED}Error: Expected exactly 3 regions, got $REGION_COUNT${NC}"
@@ -64,22 +103,19 @@ if [ "$REGION_COUNT" -ne 3 ]; then
     exit 1
 fi
 
-# Validate IPs
-read -ra IP_ARRAY <<< "$IPS"
-IP_COUNT=${#IP_ARRAY[@]}
-if [ "$IP_COUNT" -ne 3 ]; then
-    echo -e "${RED}Error: Expected exactly 3 IP addresses, got $IP_COUNT${NC}"
-    echo "IPs provided: $IPS"
-    exit 1
+# Validate IPs (comma-separated) - only if provided
+if [ -n "$IPS" ]; then
+    IFS=',' read -ra IP_ARRAY <<< "$IPS"
+    IP_COUNT=${#IP_ARRAY[@]}
+    if [ "$IP_COUNT" -ne 3 ]; then
+        echo -e "${RED}Error: Expected exactly 3 IP addresses, got $IP_COUNT${NC}"
+        echo "IPs provided: $IPS"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Validation passed:${NC} 3 regions, 3 IPs"
+else
+    echo -e "${GREEN}✓ Validation passed:${NC} 3 regions (no IP list - running as non-primary)"
 fi
-
-# Validate password
-if [ -z "$PASSWORD" ]; then
-    echo -e "${RED}Error: Password cannot be empty${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}✓ Validation passed:${NC} 3 regions, 3 IPs, password provided"
 echo ""
 
 # Check if docker-compose is available (only needed for first server, but good to check)
@@ -102,9 +138,41 @@ if [ -z "$PRIVATE_IP" ]; then
 fi
 
 echo -e "${GREEN}✓ Detected private IP:${NC} $PRIVATE_IP"
+
+# Get public IP from AWS metadata service
+PUBLIC_IP=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null)
+if [ -z "$PUBLIC_IP" ]; then
+    echo -e "${RED}Error: Failed to get public IP from AWS metadata service${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ Detected public IP:${NC} $PUBLIC_IP"
+echo -e "${GREEN}✓ Using cluster ID:${NC} $CLUSTER_ID"
 echo ""
 
-# Transform connection string: postgresql -> cockroachdb and add password
+# Add public IP to CockroachDB Cloud allowlist
+echo "Adding public IP to CockroachDB Cloud allowlist..."
+API_RESPONSE=$(curl -s -w "\n%{http_code}" --request POST \
+    --url "https://cockroachlabs.cloud/api/v1/clusters/${CLUSTER_ID}/networking/allowlist" \
+    --header "Authorization: Bearer ${COCKROACH_API_KEY}" \
+    --header "Content-Type: application/json" \
+    --data "{\"cidr_ip\":\"${PUBLIC_IP}\",\"cidr_mask\":32,\"name\":\"IAM Demo - ${PRIVATE_IP}\",\"sql\":true,\"ui\":false}")
+
+HTTP_CODE=$(echo "$API_RESPONSE" | tail -n1)
+RESPONSE_BODY=$(echo "$API_RESPONSE" | head -n-1)
+
+if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 201 ]; then
+    echo -e "${GREEN}✓ Public IP added to allowlist${NC}"
+elif [ "$HTTP_CODE" -eq 409 ]; then
+    echo -e "${YELLOW}⚠ Public IP already in allowlist${NC}"
+else
+    echo -e "${RED}Error: Failed to add IP to allowlist (HTTP $HTTP_CODE)${NC}"
+    echo "Response: $RESPONSE_BODY"
+    exit 1
+fi
+echo ""
+
+# Transform connection string: postgresql -> cockroachdb+psycopg and add password
 # Extract username from connection string
 if [[ $CONNECTION_STRING =~ postgresql://([^@]+)@ ]]; then
     USERNAME="${BASH_REMATCH[1]}"
@@ -113,8 +181,18 @@ else
     exit 1
 fi
 
-# Replace postgresql:// with cockroachdb:// and insert password
-CRDB_URL=$(echo "$CONNECTION_STRING" | sed "s|postgresql://|cockroachdb://|" | sed "s|://${USERNAME}@|://${USERNAME}:${PASSWORD}@|")
+# Transform the connection string:
+# 1. postgresql:// -> cockroachdb+psycopg://
+# 2. Add password
+# 3. Change database from defaultdb -> iam_demo
+# 4. Change sslmode=verify-full -> sslmode=require
+# 5. Remove sslrootcert parameter
+CRDB_URL=$(echo "$CONNECTION_STRING" | \
+    sed "s|postgresql://|cockroachdb+psycopg://|" | \
+    sed "s|://${USERNAME}@|://${USERNAME}:${PASSWORD}@|" | \
+    sed "s|/defaultdb|/iam_demo|" | \
+    sed "s|sslmode=verify-full|sslmode=require|" | \
+    sed "s|&sslrootcert=[^&]*||")
 
 echo -e "${GREEN}✓ Connection string transformed${NC}"
 echo "CRDB_URL: $CRDB_URL"
@@ -125,9 +203,14 @@ export CRDB_URL="$CRDB_URL"
 echo -e "${GREEN}✓ CRDB_URL exported${NC}"
 echo ""
 
-# Check if this is the first server
-FIRST_IP="${IP_ARRAY[0]}"
-if [ "$PRIVATE_IP" == "$FIRST_IP" ]; then
+# Check if this is the first server (only if IP list was provided)
+if [ -n "$IPS" ]; then
+    FIRST_IP="${IP_ARRAY[0]}"
+else
+    FIRST_IP=""
+fi
+
+if [ -n "$FIRST_IP" ] && [ "$PRIVATE_IP" == "$FIRST_IP" ]; then
     echo -e "${YELLOW}This is the FIRST server in the list${NC}"
     echo "Updating prometheus.yml and starting docker-compose..."
     echo ""
@@ -138,8 +221,14 @@ if [ "$PRIVATE_IP" == "$FIRST_IP" ]; then
         exit 1
     fi
 
-    # Create backup
-    cp prometheus.yml prometheus.yml.bak
+    # Restore from original backup if it exists, otherwise create it
+    if [ -f "prometheus.yml.bak.original" ]; then
+        echo "Restoring prometheus.yml from original backup..."
+        cp prometheus.yml.bak.original prometheus.yml
+    else
+        echo "Creating original backup of prometheus.yml..."
+        cp prometheus.yml prometheus.yml.bak.original
+    fi
 
     # Update prometheus.yml with IPs and regions
     sed -i "s|<REGION1_APP_HOST>|${IP_ARRAY[0]}|g" prometheus.yml
@@ -170,10 +259,16 @@ if [ "$PRIVATE_IP" == "$FIRST_IP" ]; then
         exit 1
     fi
 
-    # Create backups of dashboard files
+    # Restore from original backups or create them
     for dashboard in grafana/dashboards/*.json; do
         if [ -f "$dashboard" ]; then
-            cp "$dashboard" "${dashboard}.bak"
+            if [ -f "${dashboard}.bak.original" ]; then
+                # Restore from original backup
+                cp "${dashboard}.bak.original" "$dashboard"
+            else
+                # Create original backup
+                cp "$dashboard" "${dashboard}.bak.original"
+            fi
         fi
     done
 
@@ -202,7 +297,11 @@ if [ "$PRIVATE_IP" == "$FIRST_IP" ]; then
     echo -e "${GREEN}✓ docker-compose started${NC}"
     echo ""
 else
-    echo -e "${YELLOW}This is NOT the first server${NC}"
+    if [ -z "$IPS" ]; then
+        echo -e "${YELLOW}No APP_PRIVATE_IP_LIST provided - running as non-primary region${NC}"
+    else
+        echo -e "${YELLOW}This is NOT the first server${NC}"
+    fi
     echo "Skipping prometheus.yml update and docker-compose startup"
     echo ""
 fi
