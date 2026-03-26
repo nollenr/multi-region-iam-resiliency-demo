@@ -62,6 +62,13 @@ check_env() {
         echo -e "${RED}Error: CLUSTER_ID environment variable is not set${NC}"
         exit 1
     fi
+
+    # Check if jq is available (needed for JSON parsing)
+    if ! command -v jq &> /dev/null; then
+        echo -e "${RED}Error: jq is not installed${NC}"
+        echo "Install it with: sudo yum install -y jq"
+        exit 1
+    fi
 }
 
 # List all nodes in the cluster
@@ -74,36 +81,34 @@ list_nodes() {
         --header "Authorization: Bearer ${COCKROACH_API_KEY}")
 
     # Check if response contains nodes
-    if ! echo "$RESPONSE" | grep -q '"nodes"'; then
+    if ! echo "$RESPONSE" | jq -e '.nodes' > /dev/null 2>&1; then
         echo -e "${RED}Error: Failed to retrieve node information${NC}"
         echo "Response: $RESPONSE"
         exit 1
     fi
 
-    # Parse and display regions
+    # Parse and display regions using jq
     echo -e "${GREEN}Regions in cluster:${NC}"
-    echo "$RESPONSE" | grep -o '"region_name": "[^"]*"' | cut -d'"' -f4 | sort -u | while read region; do
+    echo "$RESPONSE" | jq -r '.nodes[].region_name' | sort -u | while read region; do
         echo -e "  ${YELLOW}●${NC} $region"
     done
     echo ""
 
-    # Parse and display nodes by region
+    # Parse and display nodes by region using jq
     echo -e "${GREEN}Nodes in cluster:${NC}"
 
     # Get unique regions
-    REGIONS=$(echo "$RESPONSE" | grep -o '"region_name": "[^"]*"' | cut -d'"' -f4 | sort -u)
+    REGIONS=$(echo "$RESPONSE" | jq -r '.nodes[].region_name' | sort -u)
 
     for region in $REGIONS; do
         echo -e "${YELLOW}Region: $region${NC}"
 
-        # Extract nodes for this region
-        echo "$RESPONSE" | grep -B2 "\"region_name\": \"$region\"" | grep '"name"' | cut -d'"' -f4 | while read node; do
-            # Get status for this node
-            STATUS=$(echo "$RESPONSE" | grep -A1 "\"name\": \"$node\"" | grep '"status"' | cut -d'"' -f4)
-            if [ "$STATUS" = "LIVE" ]; then
-                echo -e "  ${GREEN}✓${NC} $node (${STATUS})"
+        # Extract nodes for this region using jq
+        echo "$RESPONSE" | jq -r ".nodes[] | select(.region_name == \"$region\") | \"\(.name)|\(.status)\"" | while IFS='|' read node status; do
+            if [ "$status" = "LIVE" ]; then
+                echo -e "  ${GREEN}✓${NC} $node (${status})"
             else
-                echo -e "  ${RED}✗${NC} $node (${STATUS})"
+                echo -e "  ${RED}✗${NC} $node (${status})"
             fi
         done
         echo ""
@@ -224,8 +229,8 @@ disrupt_node() {
         --url "https://cockroachlabs.cloud/api/v1/clusters/${CLUSTER_ID}/nodes" \
         --header "Authorization: Bearer ${COCKROACH_API_KEY}")
 
-    # Find region for this node
-    REGION=$(echo "$NODES_RESPONSE" | grep -B1 "\"name\": \"$node\"" | grep '"region_name"' | cut -d'"' -f4)
+    # Find region for this node using jq
+    REGION=$(echo "$NODES_RESPONSE" | jq -r ".nodes[] | select(.name == \"$node\") | .region_name")
 
     if [ -z "$REGION" ]; then
         echo -e "${RED}Error: Node '$node' not found in cluster${NC}"

@@ -1,5 +1,4 @@
 # CockroachDB Multi-Region IAM Demo
-# CockroachDB Multi-Region IAM Demo
 
 This demo demonstrates CockroachDB's multi-region capabilities and resiliency using an Identity and Access Management (IAM) use case. It showcases how authentication and authorization systems can continue to function even when an entire region fails.
 
@@ -15,478 +14,386 @@ The demo illustrates three types of multi-region tables with different latency c
 
 ## Architecture
 
-- Multi-region CockroachDB cluster (3 regions by default)
-- One application instance per region
-- Each app connects only to local CockroachDB nodes via HAProxy
+- **CockroachDB Cloud Advanced** multi-region cluster (3 regions)
+- **One application instance per region** (deployed on EC2)
+- Each app connects only to the cluster (CockroachDB manages routing)
 - When a region fails, that app enters a retry loop (does NOT failover)
 - When the region recovers, the app automatically reconnects
+- **Prometheus + Grafana** for real-time metrics visualization (on primary region)
 
 ## Prerequisites
 
-- Multi-region CockroachDB cluster with regions configured (default: `aws-us-east-1`, `aws-us-east-2`, `aws-us-west-2`)
-  - **Note**: Update `sql/schema.sql` to match your actual cluster regions
-- Python 3.8 or higher
-- Cluster configured to survive region failure
+### Infrastructure (Deployed by Terraform)
+
+This demo is designed to be deployed via Terraform, which automatically:
+- Creates a CockroachDB Cloud Advanced cluster across 3 regions
+- Deploys EC2 app servers in each region
+- Sets required environment variables in `.bashrc`
+
+**Required environment variables** (set by Terraform in `.bashrc`):
+
+```bash
+export CRDB_CERT_URL="postgresql://user@cluster-id.region.cockroachlabs.cloud:26257/defaultdb?sslmode=verify-full&sslrootcert=..."
+export DATABASE_REGIONS="region1,region2,region3"  # Comma-separated
+export APP_PRIVATE_IP_LIST="ip1,ip2,ip3"          # Comma-separated (primary region only)
+```
+
+### Software Requirements
+
+- **Python 3.11** (installed by Terraform)
+- **Docker + Docker Compose** (for Prometheus/Grafana on primary region)
+- **cockroach CLI** (for database setup)
+
+## Required Values for Setup
+
+Before running `setup-demo.sh`, you'll need three values from CockroachDB Cloud:
+
+### 1. Database User Password
+
+**Where to find:**
+1. Go to [CockroachDB Cloud Console](https://cockroachlabs.cloud)
+2. Click **Clusters** in the top menu
+3. Select your cluster
+4. In the left menu, go to **Security → SQL Users**
+5. Create a new SQL user (or use existing)
+6. **Copy the password** during creation (shown only once!)
+
+### 2. API Key
+
+**Where to create:**
+1. In CockroachDB Cloud Console
+2. Click **Organization** in the top menu
+3. Go to **Access Management → Service Accounts**
+4. Create a new service account
+5. Assign role: **Cluster Administrator** (scope: your cluster)
+6. Generate and **copy the API key** (shown only once!)
+
+**Important:** The API key must have "Cluster Administrator" permissions scoped to your cluster for IP allowlist management and disruption testing.
+
+### 3. Cluster ID
+
+**Where to find:**
+1. Go to your cluster page in CockroachDB Cloud Console
+2. Look at the browser URL
+3. The cluster ID is the UUID in the URL
+
+**Example URL:**
+```
+https://cockroachlabs.cloud/cluster/2b50f1df-8a4d-401b-8d45-bfb0eb589a96/overview
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                    This is your Cluster ID
+```
+
+**Note:** This is the Cloud cluster ID (UUID format), NOT the internal CRDB cluster ID shown in the database UI.
 
 ## Setup Instructions
 
-### 1. Generate Demo Data
+### Quick Start (Primary Region Only)
 
-Generate the SQL data file (creates 50k+ rows):
-
-```bash
-# With default regions (aws-us-east-1, aws-us-east-2, aws-us-west-2)
-python3 sql/generate_data.py
-
-# With custom regions (specify your actual cluster regions)
-python3 sql/generate_data.py --regions us-east-1 us-west-2 eu-central-1
-
-# Get help
-python3 sql/generate_data.py --help
-```
-
-**Options:**
-- `--regions` or `-r`: Space-separated list of regions (must match your cluster regions)
-- `--output` or `-o`: Output file path (default: `sql/data.sql`)
-
-This creates `sql/data.sql` with demo data for:
-- 1,000 users
-- 15 roles
-- 5,000 historical sessions (distributed randomly across regions)
-- 50,000 audit log entries (distributed evenly across regions)
-
-### 2. Initialize Database
-
-Connect to your CockroachDB cluster and run:
+SSH into the **primary region** app server (Region 1) and run:
 
 ```bash
-# Create schema and configure multi-region
-cockroach sql --url "postgresql://root@<your-cluster>:26257/defaultdb?sslmode=require" < sql/schema.sql
-
-# Load demo data
-cockroach sql --url "postgresql://root@<your-cluster>:26257/iam_demo?sslmode=require" < sql/data.sql
+./setup-demo.sh "<password>" "<api-key>" "<cluster-id>"
 ```
 
-### 3. Install Python Dependencies
+**What it does:**
+1. ✅ Detects server's public IP and adds to cluster IP allowlist
+2. ✅ Creates connection strings for demo app and CLI
+3. ❓ **Asks if you want to setup the database** (yes/no)
+   - Generates demo data (1000 users, 15 roles, 50k+ rows)
+   - Updates schema with your regions
+   - Drops and recreates `iam_demo` database
+   - Loads all demo data
+4. ✅ Updates Prometheus and Grafana dashboards with your regions
+5. ✅ Starts Prometheus + Grafana (primary region only)
+6. ✅ Creates `demo-env.sh` for easy variable reuse
+7. ✅ Starts the IAM demo application
 
-On each app server (one per region):
+### Secondary Regions
+
+SSH into **each secondary region** app server and run the same command:
 
 ```bash
-pip3 install -r requirements.txt
+./setup-demo.sh "<password>" "<api-key>" "<cluster-id>"
 ```
 
-### 4. Configure Application
+**What it does on secondary regions:**
+1. ✅ Detects server's public IP and adds to cluster IP allowlist
+2. ✅ Creates connection strings
+3. ⏭️ Skips database setup (only primary does this)
+4. ⏭️ Skips Prometheus/Grafana (only primary has monitoring)
+5. ✅ Creates `demo-env.sh`
+6. ✅ Starts the IAM demo application
 
-Edit `demo.env` or set environment variables:
+### After Setup
+
+The script creates `demo-env.sh` with all necessary environment variables:
 
 ```bash
-# Database connection - point to your regional HAProxy/load balancer
-# Use CRDB_URL (preferred) or DB_URI
-export CRDB_URL="cockroachdb://root@<haproxy-host>:26257/iam_demo?application_name=iam_demo&sslmode=require"
+# On subsequent logins, just source this file:
+source demo-env.sh
 ```
 
-**Note**: The application checks for `CRDB_URL` first, then `DB_URI`, then uses a default. The region is automatically detected via `gateway_region()` - no manual configuration needed!
+## Running the Demo
 
-### 5. Start Demo Applications
+### Viewing Metrics
 
-In separate terminals for each region (connect to each region's local HAProxy):
+**Grafana Dashboards** (Primary region only):
+- URL: `http://<primary-region-ip>:3000`
+- Login: `admin` / `admin`
+- Five pre-configured dashboards showing latencies by region
 
-**Region 1 (aws-us-east-1):**
+**Prometheus** (for troubleshooting):
+- URL: `http://<primary-region-ip>:9090`
+
+### Demo Flow: Simulating Region Failure
+
+The demo uses `disrupt.sh` to simulate region failures via the CockroachDB Cloud API.
+
+**1. List available regions and nodes:**
 ```bash
-export CRDB_URL="cockroachdb://root@<region1-haproxy>:26257/iam_demo?application_name=iam_demo_east1"
-./demo.py
+source demo-env.sh  # Load credentials
+./disrupt.sh list
 ```
 
-**Region 2 (aws-us-east-2):**
+**2. Observe normal operation:**
+- Check Grafana dashboards - all regions showing healthy metrics
+- All demo apps showing latency stats every 5 seconds
+
+**3. Disrupt a region:**
 ```bash
-export CRDB_URL="cockroachdb://root@<region2-haproxy>:26257/iam_demo?application_name=iam_demo_east2"
-./demo.py
+# Disrupt entire region
+./disrupt.sh region aws-us-east-2
+
+# Or disrupt specific availability zones
+./disrupt.sh az aws-us-west-2 a b
+
+# Or disrupt a single node
+./disrupt.sh node cockroachdb-abc123
 ```
 
-**Region 3 (aws-us-west-2):**
+**4. Watch the behavior:**
+- **Failed region's app:** Shows "Connection lost, attempting to reconnect..."
+- **Surviving regions:** Continue operating normally
+- **Grafana:** Failed region's metrics drop to zero, status gauge turns red
+- **DB Console:** Nodes show as "Suspect" then "Dead" after ~1m15s
+
+**5. Clear the disruption:**
 ```bash
-export CRDB_URL="cockroachdb://root@<region3-haproxy>:26257/iam_demo?application_name=iam_demo_west2"
-./demo.py
+./disrupt.sh clear
 ```
 
-## Demo Walkthrough
-
-### Normal Operation
-
-When all regions are healthy, you'll see latency stats every 5 seconds:
-
-```
-2026-03-19 10:23:45.123456
----------------------------------------
-Global tables (users, roles)
-  reads:     2.34 ms avg
-
-Regional tables (sessions)
-  writes:    3.45 ms avg
-
-RBR tables (audit_logs)
-  reads:     1.23 ms avg
-  writes:    2.56 ms avg
-  AOST:      0.89 ms avg
-```
+**6. Observe recovery:**
+- Failed region's app automatically reconnects
+- Metrics resume in Grafana
+- Latencies may be briefly elevated during leaseholder rebalancing
 
 ### Understanding the Latencies
 
 **Global Tables (users, roles)**
-- **Reads**: Fast from any region (local replica)
-- **Writes**: Slower (requires consensus across regions)
-- Use case: Data that must be consistent everywhere (user accounts, permissions)
+- **Reads:** Fast from any region (local replica)
+- **Writes:** Slower (requires consensus across regions)
+- **Use case:** Data that must be consistent everywhere
 
 **Regional Tables (sessions)**
-- **Writes**: Fast in primary region (where leaseholder lives)
-- Use case: Data primarily accessed from one region
+- **Reads/Writes:** Fast in primary region
+- **AOST Reads:** Fastest (follower reads from local replica)
+- **Use case:** Data primarily accessed from one region
 
 **Regional-by-Row Tables (audit_logs)**
-- **Reads**: Fast when reading from local region
-- **Writes**: Fast (writes to local region)
-- **AOST** (Follower reads): Fastest - reads from local follower without contacting leaseholder
-- Use case: Data that's naturally partitioned by region
-
-### Simulating Region Failure
-
-1. **Prepare to fail a region** (e.g., aws-us-east-1)
-
-   Before failing, explain what will happen:
-   - aws-us-east-1 app will enter retry loop, displaying "Connection lost, attempting to reconnect..."
-   - aws-us-east-2 and aws-us-west-2 (surviving regions) will continue operating normally
-   - You may see 1-2 cycles of higher latency as leaseholders are re-elected
-   - Regional table latencies may change as leaseholders move to surviving regions
-
-2. **Open DB Console**
-
-   Show the Cluster Overview page:
-   - Note the number of nodes live, 0 suspect, 0 dead
-   - Note: 0 under-replicated ranges, 0 unavailable ranges
-
-3. **Fail the region**
-
-   Stop all CockroachDB nodes in the target region (method depends on your deployment).
-
-4. **Observe the behavior**
-
-   - Failed region's app displays: "Connection lost, attempting to reconnect..."
-   - Surviving regions' apps continue showing latency stats (may see brief spike during leaseholder re-election)
-   - In DB Console: Nodes show as "Suspect" then "Dead" (after ~1m15s with default settings)
-   - During suspect period: Some ranges show as under-replicated
-   - After nodes declared dead: Under-replicated ranges return to 0
-
-5. **Discuss the latencies**
-
-   - Global tables: Same latencies as before (data still available)
-   - Regional table writes: May have different latencies (leaseholders moved)
-   - RBR table operations: Unchanged for surviving regions
-
-### Restoring the Failed Region
-
-1. **Restart the failed region's nodes**
-
-2. **Observe recovery**
-
-   - Failed region's app automatically reconnects and resumes showing stats
-   - Regional table latencies may be higher in the recovered region initially
-   - Within ~30 seconds, leaseholders rebalance back
-   - All latencies return to normal
+- **Reads:** Fast when reading local region's data
+- **Writes:** Fast (written to local region)
+- **AOST Reads:** Fastest (local follower reads)
+- **Use case:** Data naturally partitioned by region
 
 ## Demo Flow (Per Iteration)
 
-Each iteration of the demo simulates a user session:
+Each iteration simulates a complete user session:
 
-1. **Login** - Create session (regional write to sessions table)
-2. **Check User** - Read user info (global read from users table)
-3. **Check Role** - Read role/permissions (global read from roles table)
-4. **Perform Actions** - Create 5 audit log entries (RBR writes to audit_logs table)
-5. **Logout** - End session (regional write to sessions table)
-6. **Read Audit** - Read recent audit entry (RBR read from audit_logs table)
-7. **Read Audit (AOST)** - Follower read of audit entry (RBR AOST read from audit_logs table)
+1. **Login** - Create session (regional write)
+2. **Anomaly Detection** - Check if login is unusual (vector search)
+3. **Read User** - Fetch user info (global read)
+4. **Update Last Login** - Update user record (global write)
+5. **Read Role** - Check permissions (global read)
+6. **Perform Actions** - Create 5 audit logs (RBR writes)
+7. **Logout** - End session (regional write)
+8. **Read Audit** - Fetch recent audit entry (RBR read)
+9. **Read Session** - Current data (regional read)
+10. **Read Session (AOST)** - Follower read (regional AOST)
+
+Stats displayed every 5 seconds showing average latencies by operation type.
 
 ## Project Structure
 
 ```
 .
-├── demo.py                  # Main application
-├── demo.env                 # Environment variable template
-├── requirements.txt         # Python dependencies
-├── README.md               # This file
-├── iam/                    # IAM module
+├── setup-demo.sh           # Automated setup script
+├── disrupt.sh              # Cluster disruption tool
+├── demo.py                 # Main IAM demo application
+├── demo-env.sh             # Generated environment variables (source this)
+├── requirements.txt        # Python dependencies
+├── docker-compose.yml      # Prometheus + Grafana
+├── prometheus.yml          # Prometheus configuration
+├── iam/                    # IAM application code
 │   ├── __init__.py
-│   ├── transactions.py     # Database transaction functions
-│   └── helpers.py          # Stats tracking, timing, retry logic
-└── sql/                    # SQL scripts
-    ├── schema.sql          # Database schema and multi-region config
-    ├── generate_data.py    # Data generation script
-    └── data.sql            # Generated demo data (created by generate_data.py)
+│   ├── transactions.py     # Database operations
+│   └── helpers.py          # Stats tracking, metrics, retry logic
+├── sql/                    # Database schema and data
+│   ├── schema.sql          # Multi-region schema definition
+│   ├── generate_data.py    # Demo data generator
+│   └── data.sql            # Generated data (created by setup)
+└── grafana/                # Grafana configuration
+    ├── provisioning/
+    │   ├── datasources/
+    │   │   └── prometheus.yml
+    │   └── dashboards/
+    │       └── dashboards.yml
+    └── dashboards/         # Five pre-configured dashboards
+        ├── iam-demo.json
+        ├── iam-demo-by-region.json
+        ├── iam-demo-comparison.json
+        ├── iam-demo-regional-overview.json
+        └── iam-demo-regional-split.json
 ```
 
-## Key Features
+## Anomaly Detection Feature
 
-- **Bulletproof Connection Handling**: Apps retry indefinitely on connection loss
-- **Transaction Retry Logic**: Handles serialization failures and transient errors
-- **Clean Statistics**: Shows latencies grouped by table type
-- **Simple Setup**: Minimal configuration required
-- **Real-time Metrics**: 5-second refresh interval shows operation latencies
+The demo includes ML-based anomaly detection for login patterns:
 
-## Prometheus and Grafana Setup (Optional)
+- **Vector embeddings** representing user login behavior (time of day, day of week, region)
+- **Cosine similarity search** using PostgreSQL vector extensions
+- **Severity levels:** Low (0.3-0.5), Medium (0.5-0.7), High (>0.7)
+- **Optional learning mode:** Updates user profiles from normal logins
 
-For professional visualization of metrics, you can deploy Prometheus and Grafana alongside the demo applications.
-
-### Monitoring Architecture
-
-- Prometheus scrapes metrics from all 3 regional IAM demo apps (port 8000)
-- Grafana connects to Prometheus and displays dashboards
-- Both run as Docker containers on one of the regional EC2 instances (typically Region 1)
-
-### Monitoring Prerequisites
-
-- Docker and Docker Compose installed on the monitoring host
-- Network access from Prometheus to all 3 app hosts on port 8000
-- Ports 3000 (Grafana) and 9090 (Prometheus) accessible
-
-### Monitoring Setup Instructions
-
-#### 1. Install Docker on Amazon Linux
-
-**For Amazon Linux 2:**
-
+**Configuration** (environment variables):
 ```bash
-sudo yum update -y
-sudo yum install -y docker
-sudo service docker start
-sudo usermod -a -G docker ec2-user
-
-# Install Docker Compose
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
+ENABLE_ANOMALY_DETECTION=true    # Enable/disable feature
+ANOMALY_THRESHOLD=0.3            # Minimum score to flag
+ANOMALY_INJECTION_RATE=0.10      # Percentage of anomalous logins (for demo)
+ENABLE_PROFILE_LEARNING=false    # Learn from normal logins
+LEARNING_RATE=0.1                # Weight for new observations
 ```
 
-**For Amazon Linux 2023:**
+## Grafana Dashboards
 
-```bash
-sudo yum update -y
-sudo yum install -y docker
-sudo systemctl start docker
-sudo systemctl enable docker
-sudo usermod -a -G docker ec2-user
+Five dashboards are included, each with a different visualization style:
 
-# Install Docker Compose
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-```
+1. **iam-demo.json** - Comprehensive overview with multiple panel types
+2. **iam-demo-by-region.json** - Big stat panels mimicking console output
+3. **iam-demo-comparison.json** - All regions overlaid on same graphs
+4. **iam-demo-regional-overview.json** - All metrics per region in one view
+5. **iam-demo-regional-split.json** - Separate Y-axes for fast/slow operations
 
-Log out and back in for group membership to take effect.
-
-#### 2. Configure Prometheus
-
-Edit `prometheus.yml` and replace the placeholder hosts with your actual app server IPs/hostnames:
-
-```yaml
-scrape_configs:
-  - job_name: 'iam-demo'
-    scrape_interval: 5s
-    static_configs:
-      - targets: ['10.0.1.10:8000']  # Replace with Region 1 app host
-        labels:
-          region: 'aws-us-east-1'
-
-      - targets: ['10.0.2.10:8000']  # Replace with Region 2 app host
-        labels:
-          region: 'aws-us-east-2'
-
-      - targets: ['10.0.3.10:8000']  # Replace with Region 3 app host
-        labels:
-          region: 'aws-us-west-2'
-```
-
-#### 3. Configure Security Groups
-
-Allow Prometheus to scrape metrics from all app servers on port 8000:
-
-**For each app server's security group:**
-1. Go to EC2 Console → Security Groups
-2. Select the security group for the app server
-3. Add inbound rule:
-   - **Type:** Custom TCP
-   - **Port:** 8000
-   - **Source:** IP address of Prometheus/Grafana host (or its security group ID)
-   - **Description:** Prometheus metrics scraping
-
-**Note:** If Prometheus is running on the same host as one of the apps, use `localhost:8000` for that target in `prometheus.yml` instead of the public IP.
-
-#### 4. Set File Permissions
-
-Ensure the dashboard file is readable by Grafana:
-
-```bash
-chmod 644 grafana/dashboards/iam-demo.json
-```
-
-#### 5. Start Grafana and Prometheus
-
-```bash
-# From the demo directory
-docker-compose up -d
-
-# Check that containers are running
-docker-compose ps
-
-# View logs if needed
-docker-compose logs -f
-```
-
-#### 6. Access Grafana
-
-1. Open browser to `http://<monitoring-host>:3000`
-2. Login with default credentials:
-   - Username: `admin`
-   - Password: `admin`
-3. Change password when prompted (or skip)
-4. The dashboard "CockroachDB IAM Multi-Region Demo" should be automatically loaded
-
-#### 7. Verify Metrics Collection
-
-1. Navigate to Prometheus: `http://<monitoring-host>:9090`
-2. Go to Status → Targets
-3. Verify all 3 IAM demo apps show as "UP"
-4. If any show as "DOWN", check:
-   - App is running and exposing metrics on port 8000
-   - Network connectivity between Prometheus and app hosts
-   - Firewall/security group rules allow port 8000
-
-### Dashboard Features
-
-The Grafana dashboard includes:
-
-- **Global Tables Latency**: Read and write latencies for users/roles tables
-- **Regional Tables Latency**: Read, write, and AOST latencies for sessions table
-- **Regional-by-Row Tables Latency**: Read and write latencies for audit_logs table
-- **Operations per Second by Region**: Total throughput per region
-- **Region Status Gauges**: Visual indicators showing which regions are up/down
-- **Operations by Table Type**: Stacked view of operations across table types
-- **Average Latency by Operation**: Bar chart of all operation latencies
-
-### Observing Region Failures
-
-When you fail a region during the demo:
-
-1. The region status gauge will change from green "UP" to red "DOWN"
-2. Operations per second will drop to zero for that region
-3. The other regions continue showing normal metrics
-4. Latency graphs show how surviving regions are affected
-
-When the region recovers:
-
-1. The status gauge returns to green "UP"
-2. Operations resume for that region
-3. Latency may be temporarily elevated as leaseholders rebalance
-
-### Stopping Grafana and Prometheus
-
-```bash
-# Stop containers but keep data
-docker-compose stop
-
-# Stop and remove containers (keeps volumes/data)
-docker-compose down
-
-# Stop and remove everything including data
-docker-compose down -v
-```
-
-### Monitoring Troubleshooting
-
-**Grafana shows "No data":**
-
-- Verify Prometheus is running: `docker-compose ps`
-- Check Prometheus targets: `http://<host>:9090/targets`
-- Ensure IAM demo apps are running and exposing metrics
-
-**Can't access Grafana/Prometheus:**
-
-- Check security group rules allow inbound on ports 3000 and 9090
-- Verify containers are running: `docker-compose ps`
-- Check logs: `docker-compose logs grafana` or `docker-compose logs prometheus`
-
-**Metrics not updating:**
-
-- Verify scrape interval in prometheus.yml (default: 5s)
-- Check Prometheus logs: `docker-compose logs prometheus`
-- Ensure app hosts are reachable from Prometheus container
-
-## Technologies Used
-
-- **CockroachDB**: Multi-region distributed SQL database
-- **Python 3**: Application runtime
-- **SQLAlchemy**: SQL toolkit and ORM
-- **psycopg3**: PostgreSQL adapter for Python
-- **sqlalchemy-cockroachdb**: CockroachDB dialect for SQLAlchemy
-- **Prometheus**: Metrics collection and monitoring
-- **Grafana**: Metrics visualization and dashboards
-- **Docker**: Container runtime for Prometheus and Grafana
-
-## Notes for Presenters
-
-- This demo runs in front of Ory and Teleport executives - keep it simple!
-- Focus on **resiliency** story, not IAM complexity
-- Key message: "IAM systems need to be always available - CRDB makes that possible"
-- The retry loop behavior (vs failover) clearly demonstrates regional isolation
-- Follower reads (AOST) show how to get even lower latency for slightly stale data
+All dashboards auto-update with your actual region names during setup.
 
 ## Troubleshooting
 
-**App shows connection errors immediately:**
-- Check DB_URI is correct and accessible
-- Verify CockroachDB cluster is running
-- Check network connectivity to HAProxy/load balancer
+### Setup Script Issues
 
-**No latency stats displayed:**
-- Ensure database has data (run data generation and import)
-- Verify there are active users and roles in the database
-- Check that your connection reaches the database (gateway_region() should return a valid region)
+**"Error: CRDB_CERT_URL environment variable is not set"**
+- Environment variables should be in `.bashrc` (set by Terraform)
+- Run: `source ~/.bashrc`
 
-**High latencies:**
-- Check network latency between regions
-- Verify cluster is properly distributed across regions
-- Review DB Console for hot spots or rebalancing activity
+**"Error: Failed to add IP to allowlist"**
+- Check API key has "Cluster Administrator" role
+- Verify cluster ID is correct (UUID from cluster URL)
+- Check API key hasn't expired
+
+**"Error: Failed to install schema"**
+- Verify cluster is accessible from this server
+- Check SQL user credentials are correct
+- Ensure cluster regions match `DATABASE_REGIONS`
+
+### Demo App Issues
+
+**"Connection lost, attempting to reconnect..."**
+- Expected during region disruptions
+- If persistent, check cluster status in Cloud Console
+- Verify IP allowlist includes this server's public IP
+
+**No metrics in Grafana**
+- Check demo app is running: `ps aux | grep demo.py`
+- Verify Prometheus can scrape: `http://<ip>:9090/targets`
+- Check demo app metrics endpoint: `curl http://localhost:8000/metrics`
+
+### Disruption Issues
+
+**"Error: Node not found in cluster"**
+- Run `./disrupt.sh list` to see available nodes
+- Node names change when pods restart
+
+**Disruption doesn't clear**
+- Try: `./disrupt.sh clear` again
+- Check Cloud Console for active disruptions
+- Verify API key has proper permissions
+
+## Advanced Usage
+
+### Running Demo App in Background
+
+After setup, you can manage the demo app manually:
+
+```bash
+# Stop current demo
+pkill -f demo.py
+
+# Run in background
+source demo-env.sh
+nohup ./demo.py > /dev/null 2>demo.err &
+
+# Check errors
+tail -f demo.err
+
+# Stop
+pkill -f demo.py
+```
+
+### Re-running Setup with Different Regions
+
+The setup script is idempotent and can be run multiple times:
+
+```bash
+# Update DATABASE_REGIONS in .bashrc
+export DATABASE_REGIONS="new-region1,new-region2,new-region3"
+
+# Re-run setup
+./setup-demo.sh "<password>" "<api-key>" "<cluster-id>"
+```
+
+Original backup files (`.bak.original`) ensure safe re-runs.
+
+## Technologies Used
+
+- **CockroachDB Cloud Advanced** - Multi-region distributed SQL database
+- **Python 3.11** - Application runtime
+- **SQLAlchemy 2.0** - SQL toolkit and ORM
+- **psycopg3** - PostgreSQL adapter (not psycopg2)
+- **sqlalchemy-cockroachdb** - CockroachDB dialect for SQLAlchemy
+- **prometheus-client** - Metrics export
+- **Prometheus** - Metrics collection and monitoring
+- **Grafana** - Metrics visualization
+- **Docker + Docker Compose** - Container runtime
+
+## Key Features
+
+- ✅ **Fully automated setup** - One script configures everything
+- ✅ **Idempotent** - Safe to re-run with different regions
+- ✅ **IP allowlist automation** - Automatic via Cloud API
+- ✅ **Region discovery** - Auto-detects cluster topology
+- ✅ **Real-time metrics** - Prometheus + Grafana integration
+- ✅ **Anomaly detection** - ML-based login pattern analysis
+- ✅ **Simple disruption testing** - Easy region failure simulation
+- ✅ **Professional dashboards** - Five visualization options
+
+## Notes for Presenters
+
+- This demo is designed for high-stakes presentations (Ory, Teleport executives)
+- **Focus on resiliency**, not IAM complexity
+- **Key message:** "IAM systems need to be always available - CockroachDB makes that possible"
+- The retry loop (vs failover) clearly demonstrates regional isolation
+- Follower reads (AOST) show even lower latency for slightly stale data
+- Use `disrupt.sh` during presentation for dramatic effect
 
 ## License
 
-This demo is provided as-is for demonstration purposes.
-
-
-# Anomaly Detection
-Low Severity (0.3-0.5)
-Minor deviations from normal behavior:
-
-User normally logs in 9am-5pm, but logs in at 7pm (evening, but not middle of night)
-User normally logs in weekdays, but logs in on Saturday
-User logs in from a different region in the same country (e.g., us-east-1 → us-east-2)
-Slightly longer than usual time between logins
-Example: A 9-5 worker in us-east-1 logs in at 8pm on a Tuesday from us-east-1
-
-Medium Severity (0.5-0.7)
-Moderate deviations - multiple factors slightly off or one factor very off:
-
-User normally logs in during day, but logs in at 2am-4am
-User hasn't logged in for much longer than normal (weeks instead of daily)
-User logs in from a completely different region (different time zone/country)
-Combination of 2 unusual factors (e.g., unusual time + unusual day)
-Example: A 9-5 worker in us-east-1 logs in at 2am on a weekday, or logs in from us-west-2 at 11am
-
-High Severity (>0.7)
-Major deviations - multiple factors very different:
-
-User normally logs in 9-5 weekdays from us-east-1, but now: 3am Sunday from us-west-2
-Combination of unusual time + unusual region + unusual day of week
-Pattern completely opposite to learned behavior (global travelers who suddenly stay put, or vice versa)
-Very long gap since last login combined with unusual time/location
-Example: A regular 9-5 us-east-1 worker logs in at 3am on Sunday from a different region they've never used before
-
-The cosine distance increases as:
-
-More behavior dimensions deviate from normal
-Individual dimensions deviate more significantly
-This creates a natural gradient where small changes trigger low-severity alerts, while completely abnormal behavior (potential account compromise) triggers high-severity alerts.
+This demo is provided for demonstration purposes.

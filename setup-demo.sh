@@ -203,6 +203,21 @@ export CRDB_URL="$CRDB_URL"
 echo -e "${GREEN}✓ CRDB_URL exported${NC}"
 echo ""
 
+# Create CRDB_URI for cockroach CLI (stays as postgresql, connects to defaultdb)
+CRDB_URI=$(echo "$CONNECTION_STRING" | \
+    sed "s|://${USERNAME}@|://${USERNAME}:${PASSWORD}@|" | \
+    sed "s|sslmode=verify-full|sslmode=require|" | \
+    sed "s|&sslrootcert=[^&]*||")
+
+echo -e "${GREEN}✓ Connection string for CLI created${NC}"
+echo "CRDB_URI: $CRDB_URI"
+echo ""
+
+# Export CRDB_URI
+export CRDB_URI="$CRDB_URI"
+echo -e "${GREEN}✓ CRDB_URI exported${NC}"
+echo ""
+
 # Check if this is the first server (only if IP list was provided)
 if [ -n "$IPS" ]; then
     FIRST_IP="${IP_ARRAY[0]}"
@@ -212,7 +227,72 @@ fi
 
 if [ -n "$FIRST_IP" ] && [ "$PRIVATE_IP" == "$FIRST_IP" ]; then
     echo -e "${YELLOW}This is the FIRST server in the list${NC}"
-    echo "Updating prometheus.yml and starting docker-compose..."
+    echo ""
+
+    # Ask about database setup
+    read -p "Generate data and install schema? This will DROP and recreate the iam_demo database. (y/n): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "Setting up database..."
+        echo ""
+
+        # Convert comma-separated regions to space-separated for python script
+        REGIONS_SPACE_SEP=$(echo "$DATABASE_REGIONS" | tr ',' ' ')
+
+        # Generate data
+        echo "Generating demo data..."
+        python3.11 sql/generate_data.py --regions $REGIONS_SPACE_SEP
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Error: Failed to generate data${NC}"
+            exit 1
+        fi
+        echo -e "${GREEN}✓ Demo data generated${NC}"
+        echo ""
+
+        # Update schema.sql with regions (two-pass to avoid collisions)
+        echo "Updating schema.sql with regions..."
+        # First pass: Replace with temporary placeholders
+        sed -i 's/SET PRIMARY REGION = "aws-us-east-1"/SET PRIMARY REGION = "__TEMP_REGION_1__"/' sql/schema.sql
+        sed -i 's/ADD REGION "aws-us-east-2"/ADD REGION "__TEMP_REGION_2__"/' sql/schema.sql
+        sed -i 's/ADD REGION "aws-us-west-2"/ADD REGION "__TEMP_REGION_3__"/' sql/schema.sql
+
+        # Second pass: Replace placeholders with actual region names
+        sed -i 's/__TEMP_REGION_1__/"'${REGION_ARRAY[0]}'"/' sql/schema.sql
+        sed -i 's/__TEMP_REGION_2__/"'${REGION_ARRAY[1]}'"/' sql/schema.sql
+        sed -i 's/__TEMP_REGION_3__/"'${REGION_ARRAY[2]}'"/' sql/schema.sql
+        echo -e "${GREEN}✓ Schema updated with regions:${NC} ${REGION_ARRAY[0]}, ${REGION_ARRAY[1]}, ${REGION_ARRAY[2]}"
+        echo ""
+
+        # Install schema
+        echo "Installing schema (this will drop existing iam_demo database)..."
+        cockroach sql --url "$CRDB_URI" < sql/schema.sql
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Error: Failed to install schema${NC}"
+            exit 1
+        fi
+        echo -e "${GREEN}✓ Schema installed${NC}"
+        echo ""
+
+        # Load data
+        echo "Loading data..."
+        cockroach sql --url "$CRDB_URI" < sql/data.sql
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Error: Failed to load data${NC}"
+            exit 1
+        fi
+        echo -e "${GREEN}✓ Data loaded${NC}"
+        echo ""
+
+        echo -e "${GREEN}========================================${NC}"
+        echo -e "${GREEN}✓ Database setup complete${NC}"
+        echo -e "${GREEN}========================================${NC}"
+        echo ""
+    else
+        echo "Skipping database setup"
+        echo ""
+    fi
+
+    echo "Updating prometheus.yml and Grafana dashboards..."
     echo ""
 
     # Update prometheus.yml
@@ -288,8 +368,9 @@ if [ -n "$FIRST_IP" ] && [ "$PRIVATE_IP" == "$FIRST_IP" ]; then
     echo "  All dashboards updated with new region names"
     echo ""
 
-    # Start docker-compose
+    # Start docker-compose (stop first to ensure fresh config is loaded)
     echo "Starting Prometheus and Grafana..."
+    docker-compose down 2>/dev/null || true  # Stop if running, ignore errors if not
     if ! docker-compose up -d; then
         echo -e "${RED}Error: docker-compose failed${NC}"
         exit 1
@@ -315,6 +396,7 @@ cat > demo-env.sh << EOF
 export COCKROACH_API_KEY="$COCKROACH_API_KEY"
 export CLUSTER_ID="$CLUSTER_ID"
 export CRDB_URL="$CRDB_URL"
+export CRDB_URI="$CRDB_URI"
 EOF
 
 chmod 644 demo-env.sh
