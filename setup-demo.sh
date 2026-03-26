@@ -251,15 +251,25 @@ if [ -n "$FIRST_IP" ] && [ "$PRIVATE_IP" == "$FIRST_IP" ]; then
 
         # Update schema.sql with regions (two-pass to avoid collisions)
         echo "Updating schema.sql with regions..."
+
+        # Restore from original backup if it exists, otherwise create it
+        if [ -f "sql/schema.sql.bak.original" ]; then
+            echo "Restoring schema.sql from original backup..."
+            cp sql/schema.sql.bak.original sql/schema.sql
+        else
+            echo "Creating original backup of schema.sql..."
+            cp sql/schema.sql sql/schema.sql.bak.original
+        fi
+
         # First pass: Replace with temporary placeholders
         sed -i 's/SET PRIMARY REGION = "aws-us-east-1"/SET PRIMARY REGION = "__TEMP_REGION_1__"/' sql/schema.sql
         sed -i 's/ADD REGION "aws-us-east-2"/ADD REGION "__TEMP_REGION_2__"/' sql/schema.sql
         sed -i 's/ADD REGION "aws-us-west-2"/ADD REGION "__TEMP_REGION_3__"/' sql/schema.sql
 
-        # Second pass: Replace placeholders with actual region names
-        sed -i 's/__TEMP_REGION_1__/"'${REGION_ARRAY[0]}'"/' sql/schema.sql
-        sed -i 's/__TEMP_REGION_2__/"'${REGION_ARRAY[1]}'"/' sql/schema.sql
-        sed -i 's/__TEMP_REGION_3__/"'${REGION_ARRAY[2]}'"/' sql/schema.sql
+        # Second pass: Replace placeholders with actual region names (no quotes - they're already in the template)
+        sed -i 's/__TEMP_REGION_1__/'${REGION_ARRAY[0]}'/' sql/schema.sql
+        sed -i 's/__TEMP_REGION_2__/'${REGION_ARRAY[1]}'/' sql/schema.sql
+        sed -i 's/__TEMP_REGION_3__/'${REGION_ARRAY[2]}'/' sql/schema.sql
         echo -e "${GREEN}✓ Schema updated with regions:${NC} ${REGION_ARRAY[0]}, ${REGION_ARRAY[1]}, ${REGION_ARRAY[2]}"
         echo ""
 
