@@ -23,10 +23,14 @@ The demo illustrates three types of multi-region tables with different latency c
 
 ## Prerequisites
 
+### CockroachDB Cloud Cluster
+
+**Required:** A CockroachDB Cloud Advanced cluster across 3 regions must be created before running Terraform.
+
 ### Infrastructure (Deployed by Terraform)
 
 This demo is designed to be deployed via Terraform, which automatically:
-- Creates a CockroachDB Cloud Advanced cluster across 3 regions
+
 - Deploys EC2 app servers in each region
 - Sets required environment variables in `.bashrc`
 
@@ -38,9 +42,9 @@ export DATABASE_REGIONS="region1,region2,region3"  # Comma-separated
 export APP_PRIVATE_IP_LIST="ip1,ip2,ip3"          # Comma-separated (primary region only)
 ```
 
-### Software Requirements
+### Software Requirements (all installed by Terraform)
 
-- **Python 3.11** (installed by Terraform)
+- **Python 3.11** 
 - **Docker + Docker Compose** (for Prometheus/Grafana on primary region)
 - **cockroach CLI** (for database setup)
 
