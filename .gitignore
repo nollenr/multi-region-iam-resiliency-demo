@@ -37,4 +37,7 @@ Thumbs.db
 # Environment
 .env
 demo.env.local
-exports.sh  
+exports.sh
+
+# Claude Code memory
+.claude/

@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# Make sure env vars are set first
+# source demo-env.sh
+
+# Run in background
+# nohup ./demo.py > /dev/null 2>demo.err &
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
