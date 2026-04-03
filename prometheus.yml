@@ -7,7 +7,8 @@ global:
 scrape_configs:
   # Scrape metrics from IAM demo apps in each region
   - job_name: 'iam-demo'
-    scrape_interval: 5s
+    scrape_interval: 2s
+    scrape_timeout: 2s
     static_configs:
       # Region 1: aws-us-east-1
       - targets: ['<REGION1_APP_HOST>:8000']

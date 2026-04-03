@@ -76,6 +76,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           },
@@ -208,6 +212,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           },
@@ -340,6 +348,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           },
@@ -472,6 +484,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           },
@@ -504,7 +520,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"global\",operation=\"update_user\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"global\",operation=\"update_user\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"global\",operation=\"update_user\"}[3m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"global\",operation=\"update_user\"}[3m])) * 1000",
           "legendFormat": "Global - Writes",
           "refId": "A"
         }
@@ -559,6 +575,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           },
@@ -591,7 +611,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"global\",operation=\"update_user\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"global\",operation=\"update_user\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"global\",operation=\"update_user\"}[3m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"global\",operation=\"update_user\"}[3m])) * 1000",
           "legendFormat": "Global - Writes",
           "refId": "A"
         }
@@ -646,6 +666,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           },
@@ -678,7 +702,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"global\",operation=\"update_user\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"global\",operation=\"update_user\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"global\",operation=\"update_user\"}[3m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"global\",operation=\"update_user\"}[3m])) * 1000",
           "legendFormat": "Global - Writes",
           "refId": "A"
         }
@@ -733,6 +757,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           },
@@ -884,6 +912,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           },
@@ -1035,6 +1067,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           },
@@ -1149,6 +1185,8 @@
           "color": {
             "mode": "thresholds"
           },
+          "max": 1,
+          "min": 0,
           "mappings": [
             {
               "options": {
@@ -1172,6 +1210,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           }
@@ -1182,7 +1224,7 @@
         "h": 5,
         "w": 8,
         "x": 0,
-        "y": 29
+        "y": 34
       },
       "id": 7,
       "options": {
@@ -1193,7 +1235,7 @@
           "fields": ""
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true,
+        "showThresholdMarkers": false,
         "text": {}
       },
       "pluginVersion": "10.0.0",
@@ -1208,7 +1250,7 @@
           "refId": "A"
         }
       ],
-      "title": "Region 1 Status",
+      "title": "Region 1 - DB Connected",
       "type": "gauge"
     },
     {
@@ -1221,6 +1263,8 @@
           "color": {
             "mode": "thresholds"
           },
+          "max": 1,
+          "min": 0,
           "mappings": [
             {
               "options": {
@@ -1244,6 +1288,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           }
@@ -1254,7 +1302,7 @@
         "h": 5,
         "w": 8,
         "x": 8,
-        "y": 29
+        "y": 34
       },
       "id": 8,
       "options": {
@@ -1265,7 +1313,7 @@
           "fields": ""
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true,
+        "showThresholdMarkers": false,
         "text": {}
       },
       "pluginVersion": "10.0.0",
@@ -1280,7 +1328,7 @@
           "refId": "A"
         }
       ],
-      "title": "Region 2 Status",
+      "title": "Region 2 - DB Connected",
       "type": "gauge"
     },
     {
@@ -1293,6 +1341,8 @@
           "color": {
             "mode": "thresholds"
           },
+          "max": 1,
+          "min": 0,
           "mappings": [
             {
               "options": {
@@ -1316,6 +1366,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           }
@@ -1326,7 +1380,7 @@
         "h": 5,
         "w": 8,
         "x": 16,
-        "y": 29
+        "y": 34
       },
       "id": 9,
       "options": {
@@ -1337,7 +1391,7 @@
           "fields": ""
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true,
+        "showThresholdMarkers": false,
         "text": {}
       },
       "pluginVersion": "10.0.0",
@@ -1352,11 +1406,245 @@
           "refId": "A"
         }
       ],
-      "title": "Region 3 Status",
+      "title": "Region 3 - DB Connected",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "max": 1,
+          "min": 0,
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "DOWN"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 29
+      },
+      "id": 13,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": false,
+        "text": {}
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "up{job=\"iam-demo\", region=\"aws-us-east-1\"}",
+          "legendFormat": "aws-us-east-1",
+          "refId": "A"
+        }
+      ],
+      "title": "Region 1 - App Running",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "max": 1,
+          "min": 0,
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "DOWN"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 29
+      },
+      "id": 14,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": false,
+        "text": {}
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "up{job=\"iam-demo\", region=\"aws-us-east-2\"}",
+          "legendFormat": "aws-us-east-2",
+          "refId": "A"
+        }
+      ],
+      "title": "Region 2 - App Running",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "max": 1,
+          "min": 0,
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "DOWN"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 29
+      },
+      "id": 15,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": false,
+        "text": {}
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "up{job=\"iam-demo\", region=\"aws-us-west-2\"}",
+          "legendFormat": "aws-us-west-2",
+          "refId": "A"
+        }
+      ],
+      "title": "Region 3 - App Running",
       "type": "gauge"
     }
   ],
-  "refresh": "5s",
+  "refresh": "2s",
   "schemaVersion": 38,
   "style": "dark",
   "tags": ["iam", "cockroachdb", "multi-region", "anomaly-detection", "ai"],

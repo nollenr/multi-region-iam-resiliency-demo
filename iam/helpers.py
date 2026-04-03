@@ -271,7 +271,7 @@ class DemoTimer():
         return self.stop()
 
 
-def run_transaction(db_engine: SAEngine, txn_func, max_retries=10):
+def run_transaction(db_engine: SAEngine, txn_func, region=None, max_retries=10):
     """
     Execute a transaction function with automatic retry logic for transient errors
 
@@ -281,12 +281,23 @@ def run_transaction(db_engine: SAEngine, txn_func, max_retries=10):
     - Connection errors - retry indefinitely with 1s delay
 
     Compatible with psycopg3 (psycopg package)
+
+    Args:
+        db_engine: SQLAlchemy database engine
+        txn_func: Transaction function to execute
+        region: Region name for connectivity tracking (optional)
+        max_retries: Maximum retry attempts (None for infinite)
     """
     retry_count = 0
     while True:
         try:
             with db_engine.connect().execution_options(isolation_level='AUTOCOMMIT') as conn:
                 result = txn_func(conn)
+
+                # SUCCESS - mark region as connected
+                if region:
+                    region_status.labels(region=region).set(1)
+
                 return result
 
         except DatabaseError as e:
@@ -305,12 +316,16 @@ def run_transaction(db_engine: SAEngine, txn_func, max_retries=10):
 
             # Connection errors - retry indefinitely with delay
             elif isinstance(e.orig, psycopg.errors.OperationalError):
+                # FAILURE - mark region as disconnected
+                if region:
+                    region_status.labels(region=region).set(0)
+
                 pg_code = ''
                 if e.orig.sqlstate is not None:
                     pg_code = f" (PG Error: {e.orig.sqlstate})"
                 print(f"Connection lost, attempting to reconnect...{pg_code}")
                 retry_count = 0   # Try indefinitely
-                sleep(1)
+                sleep(0.5)  # 500ms between retries for fast reconnection in demos
                 continue
 
             # Raise everything else

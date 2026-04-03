@@ -48,6 +48,10 @@ LEARNING_RATE = float(os.getenv('LEARNING_RATE', '0.1'))  # Weight for new obser
 # Regions list for anomaly detection
 REGIONS = ['aws-us-east-1', 'aws-us-east-2', 'aws-us-west-2']
 
+# Optional: Pre-set region for connectivity tracking before DB connection
+# If not set, region will be auto-detected from database (but status won't show until connected)
+DEMO_REGION = os.getenv('DEMO_REGION')  # e.g., 'aws-us-east-1'
+
 # Check for CRDB_URL first, then DB_URI, then use default
 DB_URI = os.getenv('CRDB_URL') or os.getenv('DB_URI') or 'cockroachdb://root@127.0.0.1:26257/iam_demo?application_name=iam_demo'
 
@@ -119,7 +123,8 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
         lambda conn: create_session(
             conn, session_id, user_id, login_time,
             ip_address='192.168.1.100', user_agent='Demo App'
-        )
+        ),
+        region=region
     )
     stats.add_to_stats(DemoStats.OP_LOGIN, op_timer.stop())
 
@@ -132,7 +137,8 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
             db_engine,
             lambda conn: detect_login_anomaly(
                 conn, user_id, session_id, login_time, region, REGIONS, ANOMALY_THRESHOLD
-            )
+            ),
+            region=region
         )
         anomaly_time = op_timer.stop()
         stats.add_to_stats(DemoStats.OP_ANOMALY_DETECTION, anomaly_time)
@@ -158,7 +164,8 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
                 lambda conn: conn.execute(
                     text("SELECT behavior_vector FROM user_behavior_profiles WHERE user_id = :user_id"),
                     {"user_id": user_id}
-                ).one_or_none()
+                ).one_or_none(),
+                region=region
             )
 
             if profile:
@@ -173,7 +180,8 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
                     lambda conn: log_login_anomaly(
                         conn, user_id, session_id, anomaly_score,
                         current_vector, profile_vector, details
-                    )
+                    ),
+                    region=region
                 )
                 stats.increment_anomaly_count()
 
@@ -185,7 +193,8 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
                 db_engine,
                 lambda conn: update_user_behavior_profile(
                     conn, user_id, current_vector, LEARNING_RATE
-                )
+                ),
+                region=region
             )
 
     # ==========================================================================
@@ -194,7 +203,8 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
     op_timer.start()
     run_transaction(
         db_engine,
-        lambda conn: get_user(conn, user_id)
+        lambda conn: get_user(conn, user_id),
+        region=region
     )
     stats.add_to_stats(DemoStats.OP_READ_USER, op_timer.stop())
 
@@ -204,7 +214,8 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
     op_timer.start()
     run_transaction(
         db_engine,
-        lambda conn: update_last_login(conn, user_id, login_time)
+        lambda conn: update_last_login(conn, user_id, login_time),
+        region=region
     )
     stats.add_to_stats(DemoStats.OP_UPDATE_USER, op_timer.stop())
 
@@ -214,7 +225,8 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
     op_timer.start()
     run_transaction(
         db_engine,
-        lambda conn: get_role(conn, role_id)
+        lambda conn: get_role(conn, role_id),
+        region=region
     )
     stats.add_to_stats(DemoStats.OP_READ_ROLE, op_timer.stop())
 
@@ -233,7 +245,8 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
                 conn, user_id, session_id, action, resource,
                 result='success',
                 metadata={'action_number': i + 1, 'duration_ms': randint(10, 500)}
-            )
+            ),
+            region=region
         )
         stats.add_to_stats(DemoStats.OP_CREATE_AUDIT, op_timer.stop())
         audit_ids.append(audit_id)
@@ -246,7 +259,8 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
     op_timer.start()
     run_transaction(
         db_engine,
-        lambda conn: end_session(conn, session_id, logout_time)
+        lambda conn: end_session(conn, session_id, logout_time),
+        region=region
     )
     stats.add_to_stats(DemoStats.OP_LOGOUT, op_timer.stop())
 
@@ -259,7 +273,8 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
     op_timer.start()
     run_transaction(
         db_engine,
-        lambda conn: get_recent_audit_log(conn, audit_id)
+        lambda conn: get_recent_audit_log(conn, audit_id),
+        region=region
     )
     stats.add_to_stats(DemoStats.OP_READ_AUDIT, op_timer.stop())
 
@@ -269,7 +284,8 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
     op_timer.start()
     run_transaction(
         db_engine,
-        lambda conn: get_session(conn, session_id)
+        lambda conn: get_session(conn, session_id),
+        region=region
     )
     stats.add_to_stats(DemoStats.OP_READ_SESSION, op_timer.stop())
 
@@ -279,7 +295,8 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
     op_timer.start()
     run_transaction(
         db_engine,
-        lambda conn: get_session_aost(conn, session_id)
+        lambda conn: get_session_aost(conn, session_id),
+        region=region
     )
     stats.add_to_stats(DemoStats.OP_READ_SESSION_AOST, op_timer.stop())
 
@@ -304,16 +321,38 @@ def main():
     stats = DemoStats(STATS_INTERVAL_SECS)
     op_timer = DemoTimer()
 
-    db_engine = create_engine(DB_URI)
+    # Create database engine with aggressive timeouts for fast failure detection
+    db_engine = create_engine(
+        DB_URI,
+        connect_args={
+            "connect_timeout": 2,        # 2 second connection timeout
+            "options": "-c statement_timeout=2000"  # 2 second query timeout (in milliseconds)
+        },
+        pool_pre_ping=True  # Test connections before using them
+    )
 
     # Query the gateway region and node ID from the database
+    # If DEMO_REGION is set, use it for connectivity tracking during initial connection
+    print("Connecting to database to detect region...")
     region = run_transaction(
         db_engine,
-        lambda conn: get_gateway_region(conn)
+        lambda conn: get_gateway_region(conn),
+        region=DEMO_REGION  # Pass pre-set region if available (None if not set)
     )
+
+    # Verify detected region matches DEMO_REGION if both are set
+    if DEMO_REGION and region != DEMO_REGION:
+        print(f"Warning: Detected region '{region}' doesn't match DEMO_REGION='{DEMO_REGION}'")
+        print(f"Using detected region: {region}")
+
+    # Now we know the region - ensure status is set
+    from iam.helpers import region_status
+    region_status.labels(region=region).set(1)  # We're connected if we got here
+
     node_id = run_transaction(
         db_engine,
-        lambda conn: get_node_id(conn)
+        lambda conn: get_node_id(conn),
+        region=region  # Now pass region for status tracking
     )
 
     # Set connection info for stats display
@@ -326,13 +365,15 @@ def main():
     print("Loading user and role lists...")
     user_ids = run_transaction(
         db_engine,
-        lambda conn: get_users(conn)
+        lambda conn: get_users(conn),
+        region=region
     )
     print(f"{len(user_ids)} active users found")
 
     role_ids = run_transaction(
         db_engine,
-        lambda conn: get_roles(conn)
+        lambda conn: get_roles(conn),
+        region=region
     )
     print(f"{len(role_ids)} roles found")
     print()

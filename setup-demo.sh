@@ -1,5 +1,6 @@
 #!/bin/bash
-set -e
+# Note: set -e removed to prevent accidental shell crashes during demos
+# The script will check critical operations explicitly
 
 # Make sure env vars are set first
 # source demo-env.sh
@@ -403,6 +404,23 @@ else
     echo ""
 fi
 
+# Detect which region this server is in (for connectivity status tracking)
+DEMO_REGION=""
+if [ -n "$IPS" ]; then
+    # Match private IP to region
+    for i in "${!IP_ARRAY[@]}"; do
+        if [ "${IP_ARRAY[$i]}" == "$PRIVATE_IP" ]; then
+            DEMO_REGION="${REGION_ARRAY[$i]}"
+            echo -e "${GREEN}✓ Detected demo region:${NC} $DEMO_REGION (based on private IP)"
+            break
+        fi
+    done
+else
+    # No IP list provided - try to match first region as default
+    DEMO_REGION="${REGION_ARRAY[0]}"
+    echo -e "${YELLOW}⚠ No IP list - using first region as default:${NC} $DEMO_REGION"
+fi
+
 # Create demo-env.sh for easy sourcing of environment variables
 echo "Creating demo-env.sh for environment variables..."
 cat > demo-env.sh << EOF
@@ -413,6 +431,7 @@ export COCKROACH_API_KEY="$COCKROACH_API_KEY"
 export CLUSTER_ID="$CLUSTER_ID"
 export CRDB_URL="$CRDB_URL"
 export CRDB_URI="$CRDB_URI"
+export DEMO_REGION="$DEMO_REGION"
 EOF
 
 chmod 644 demo-env.sh

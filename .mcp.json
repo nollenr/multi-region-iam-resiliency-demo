@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "cockroachdb-docs": {
+      "type": "http",
+      "url": "https://cockroachdb.mcp.kapa.ai"
+    }
+  }
+}
