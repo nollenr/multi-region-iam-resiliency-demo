@@ -7,6 +7,7 @@
 
 # Run in background
 # nohup ./demo.py > /dev/null 2>demo.err &
+# nohup python3.11 -u ./demo.py > demo.out 2>&1 &
 
 # Colors for output
 RED='\033[0;31m'
@@ -173,9 +174,9 @@ if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 201 ]; then
 elif [ "$HTTP_CODE" -eq 409 ]; then
     echo -e "${YELLOW}⚠ Public IP already in allowlist${NC}"
 else
-    echo -e "${RED}Error: Failed to add IP to allowlist (HTTP $HTTP_CODE)${NC}"
+    echo -e "${YELLOW}⚠ Warning: Failed to add IP to allowlist (HTTP $HTTP_CODE)${NC}"
     echo "Response: $RESPONSE_BODY"
-    exit 1
+    echo -e "${YELLOW}Continuing anyway - make sure 3.139.240.192 is manually added to allowlist${NC}"
 fi
 echo ""
 
