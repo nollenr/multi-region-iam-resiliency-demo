@@ -321,12 +321,12 @@ def main():
     stats = DemoStats(STATS_INTERVAL_SECS)
     op_timer = DemoTimer()
 
-    # Create database engine with aggressive timeouts for fast failure detection
+    # Create database engine with timeouts for fast failure detection
     db_engine = create_engine(
         DB_URI,
         connect_args={
-            "connect_timeout": 1,        # 1 second connection timeout
-            "options": "-c statement_timeout=1000"  # 1 second query timeout - fast failover without canceling normal queries
+            "connect_timeout": 2,        # 2 second connection timeout for detecting dead nodes
+            "options": "-c statement_timeout=5000"  # 5 second query timeout - detects dead nodes without canceling slow cluster operations
         },
         pool_pre_ping=True  # Test connections before using them
     )

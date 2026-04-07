@@ -37,3 +37,14 @@ CRDBiam_demo> select
        998 |            7 | {1,2,6,7,9} | {6,9,7}         | {2,1}
 (4 rows)
 
+-- Check for ANY range movements around your disruption
+SELECT 
+  timestamp,
+  "rangeID",
+  "storeID",
+  "eventType",
+  info
+FROM system.rangelog 
+WHERE timestamp > '2026-04-07 19:14:00'  -- 12:14 local = 19:14 UTC (just before your second test)
+  AND timestamp < '2026-04-07 19:25:00'  -- 12:25 local
+ORDER BY timestamp;

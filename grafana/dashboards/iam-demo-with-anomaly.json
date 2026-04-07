@@ -112,7 +112,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"global\",operation=\"read_user\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"global\",operation=\"read_user\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"global\",operation=\"read_user\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"global\",operation=\"read_user\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "Global (users, roles) - Reads",
           "refId": "A"
@@ -122,7 +122,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"read_session\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"read_session\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"read_session\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"read_session\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "Regional (sessions) - Reads",
           "refId": "B"
@@ -132,7 +132,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"login\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"login\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"login\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"login\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "Regional (sessions) - Writes",
           "refId": "C"
@@ -142,7 +142,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"read_session_aost\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"read_session_aost\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"read_session_aost\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"regional\",operation=\"read_session_aost\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "Regional (sessions) - AOST",
           "refId": "D"
@@ -152,7 +152,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"rbr\",operation=\"read_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"rbr\",operation=\"read_audit\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"rbr\",operation=\"read_audit\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"rbr\",operation=\"read_audit\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "RBR (audit_logs) - Reads",
           "refId": "E"
@@ -162,7 +162,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"rbr\",operation=\"create_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"rbr\",operation=\"create_audit\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-1\",table_type=\"rbr\",operation=\"create_audit\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-1\",table_type=\"rbr\",operation=\"create_audit\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "RBR (audit_logs) - Writes",
           "refId": "F"
@@ -255,7 +255,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"global\",operation=\"read_user\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"global\",operation=\"read_user\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"global\",operation=\"read_user\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"global\",operation=\"read_user\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "Global (users, roles) - Reads",
           "refId": "A"
@@ -265,7 +265,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"read_session\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"read_session\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"read_session\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"read_session\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "Regional (sessions) - Reads",
           "refId": "B"
@@ -275,7 +275,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"login\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"login\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"login\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"login\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "Regional (sessions) - Writes",
           "refId": "C"
@@ -285,7 +285,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"read_session_aost\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"read_session_aost\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"read_session_aost\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"regional\",operation=\"read_session_aost\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "Regional (sessions) - AOST",
           "refId": "D"
@@ -295,7 +295,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"rbr\",operation=\"read_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"rbr\",operation=\"read_audit\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"rbr\",operation=\"read_audit\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"rbr\",operation=\"read_audit\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "RBR (audit_logs) - Reads",
           "refId": "E"
@@ -305,7 +305,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"rbr\",operation=\"create_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"rbr\",operation=\"create_audit\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-east-2\",table_type=\"rbr\",operation=\"create_audit\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-east-2\",table_type=\"rbr\",operation=\"create_audit\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "RBR (audit_logs) - Writes",
           "refId": "F"
@@ -398,7 +398,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"global\",operation=\"read_user\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"global\",operation=\"read_user\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"global\",operation=\"read_user\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"global\",operation=\"read_user\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "Global (users, roles) - Reads",
           "refId": "A"
@@ -408,7 +408,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"read_session\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"read_session\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"read_session\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"read_session\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "Regional (sessions) - Reads",
           "refId": "B"
@@ -418,7 +418,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"login\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"login\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"login\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"login\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "Regional (sessions) - Writes",
           "refId": "C"
@@ -428,7 +428,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"read_session_aost\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"read_session_aost\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"read_session_aost\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"regional\",operation=\"read_session_aost\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "Regional (sessions) - AOST",
           "refId": "D"
@@ -438,7 +438,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"rbr\",operation=\"read_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"rbr\",operation=\"read_audit\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"rbr\",operation=\"read_audit\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"rbr\",operation=\"read_audit\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "RBR (audit_logs) - Reads",
           "refId": "E"
@@ -448,7 +448,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"rbr\",operation=\"create_audit\"}[1m]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"rbr\",operation=\"create_audit\"}[1m])) * 1000",
+          "expr": "(rate(iam_operation_duration_seconds_sum{exported_region=\"aws-us-west-2\",table_type=\"rbr\",operation=\"create_audit\"}[15s]) / rate(iam_operation_duration_seconds_count{exported_region=\"aws-us-west-2\",table_type=\"rbr\",operation=\"create_audit\"}[15s])) * 1000",
           "interval": "2s",
           "legendFormat": "RBR (audit_logs) - Writes",
           "refId": "F"
@@ -869,7 +869,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-east-1\",severity=\"high\"}[1m])",
+          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-east-1\",severity=\"high\"}[15s])",
           "interval": "2s",
           "legendFormat": "High Severity",
           "refId": "A"
@@ -879,7 +879,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-east-1\",severity=\"medium\"}[1m])",
+          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-east-1\",severity=\"medium\"}[15s])",
           "interval": "2s",
           "legendFormat": "Medium Severity",
           "refId": "B"
@@ -889,7 +889,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-east-1\",severity=\"low\"}[1m])",
+          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-east-1\",severity=\"low\"}[15s])",
           "interval": "2s",
           "legendFormat": "Low Severity",
           "refId": "C"
@@ -1028,7 +1028,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-east-2\",severity=\"high\"}[1m])",
+          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-east-2\",severity=\"high\"}[15s])",
           "interval": "2s",
           "legendFormat": "High Severity",
           "refId": "A"
@@ -1038,7 +1038,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-east-2\",severity=\"medium\"}[1m])",
+          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-east-2\",severity=\"medium\"}[15s])",
           "interval": "2s",
           "legendFormat": "Medium Severity",
           "refId": "B"
@@ -1048,7 +1048,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-east-2\",severity=\"low\"}[1m])",
+          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-east-2\",severity=\"low\"}[15s])",
           "interval": "2s",
           "legendFormat": "Low Severity",
           "refId": "C"
@@ -1187,7 +1187,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-west-2\",severity=\"high\"}[1m])",
+          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-west-2\",severity=\"high\"}[15s])",
           "interval": "2s",
           "legendFormat": "High Severity",
           "refId": "A"
@@ -1197,7 +1197,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-west-2\",severity=\"medium\"}[1m])",
+          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-west-2\",severity=\"medium\"}[15s])",
           "interval": "2s",
           "legendFormat": "Medium Severity",
           "refId": "B"
@@ -1207,7 +1207,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-west-2\",severity=\"low\"}[1m])",
+          "expr": "rate(iam_anomalies_detected_total{exported_region=\"aws-us-west-2\",severity=\"low\"}[15s])",
           "interval": "2s",
           "legendFormat": "Low Severity",
           "refId": "C"
