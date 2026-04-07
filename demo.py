@@ -321,14 +321,19 @@ def main():
     stats = DemoStats(STATS_INTERVAL_SECS)
     op_timer = DemoTimer()
 
-    # Create database engine with timeouts for fast failure detection
+    # Create database engine with aggressive timeouts for fast failure detection
     db_engine = create_engine(
         DB_URI,
         connect_args={
-            "connect_timeout": 2,        # 2 second connection timeout for detecting dead nodes
-            "options": "-c statement_timeout=5000"  # 5 second query timeout - detects dead nodes without canceling slow cluster operations
+            "connect_timeout": 2,        # 2 second connection timeout
+            "options": "-c statement_timeout=5000",  # 5 second query timeout
+            "keepalives": 1,             # Enable TCP keepalives
+            "keepalives_idle": 5,        # Start keepalives after 5 seconds of idle
+            "keepalives_interval": 2,    # Send keepalive every 2 seconds
+            "keepalives_count": 2        # Declare dead after 2 failed keepalives
         },
-        pool_pre_ping=True  # Test connections before using them
+        pool_pre_ping=False,  # Disable pre-ping, rely on keepalives instead
+        pool_recycle=30  # Recycle connections every 30 seconds to detect stale connections
     )
 
     # Query the gateway region and node ID from the database
