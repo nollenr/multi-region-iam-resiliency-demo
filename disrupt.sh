@@ -23,7 +23,7 @@
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
+YELLOW='\033[1;34m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
@@ -87,6 +87,29 @@ list_nodes() {
         exit 1
     fi
 
+    # Try to get SQL instance IDs (optional - graceful degradation)
+    HAS_NODE_IDS=false
+    declare -A NODE_MAP
+
+    # Check if cockroach CLI exists and CRDB_URI is set
+    if command -v cockroach &> /dev/null && [ -n "$CRDB_URI" ]; then
+        SQL_QUERY="SELECT id, split_part(addr, '.', 1) as pod_name FROM system.sql_instances WHERE addr IS NOT NULL ORDER BY id"
+
+        SQL_RESPONSE=$(cockroach sql --url "$CRDB_URI" --format=csv --execute "$SQL_QUERY" 2>/dev/null)
+
+        # Check if query succeeded and has results
+        if [ $? -eq 0 ] && [ -n "$SQL_RESPONSE" ]; then
+            # Parse CSV into associative array
+            while IFS=',' read -r id pod_name; do
+                # Skip CSV header
+                if [ "$id" != "id" ]; then
+                    NODE_MAP["$pod_name"]="$id"
+                fi
+            done <<< "$SQL_RESPONSE"
+            HAS_NODE_IDS=true
+        fi
+    fi
+
     # Parse and display regions using jq
     echo -e "${GREEN}Regions in cluster:${NC}"
     echo "$RESPONSE" | jq -r '.nodes[].region_name' | sort -u | while read region; do
@@ -105,10 +128,18 @@ list_nodes() {
 
         # Extract nodes for this region using jq
         echo "$RESPONSE" | jq -r ".nodes[] | select(.region_name == \"$region\") | \"\(.name)|\(.status)\"" | while IFS='|' read node status; do
-            if [ "$status" = "LIVE" ]; then
-                echo -e "  ${GREEN}✓${NC} $node (${status})"
+            # Build display string with node ID if available
+            if [ "$HAS_NODE_IDS" = true ] && [ -n "${NODE_MAP[$node]}" ]; then
+                NODE_DISPLAY="Node ${NODE_MAP[$node]}: $node"
             else
-                echo -e "  ${RED}✗${NC} $node (${status})"
+                NODE_DISPLAY="$node"
+            fi
+
+            # Display with status indicator
+            if [ "$status" = "LIVE" ]; then
+                echo -e "  ${GREEN}✓${NC} $NODE_DISPLAY (${status})"
+            else
+                echo -e "  ${RED}✗${NC} $NODE_DISPLAY (${status})"
             fi
         done
         echo ""
