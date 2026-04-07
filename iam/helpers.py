@@ -40,6 +40,9 @@ anomaly_counter = Counter(
     ['region', 'severity']
 )
 
+# Global flag to track if we've reconnected and need to re-query node_id
+_reconnected = False
+
 
 class OpStats():
     """Tracks statistics for a single operation type"""
@@ -288,7 +291,10 @@ def run_transaction(db_engine: SAEngine, txn_func, region=None, max_retries=10):
         region: Region name for connectivity tracking (optional)
         max_retries: Maximum retry attempts (None for infinite)
     """
+    global _reconnected
     retry_count = 0
+    was_disconnected = False
+
     while True:
         try:
             with db_engine.connect().execution_options(isolation_level='AUTOCOMMIT') as conn:
@@ -297,6 +303,10 @@ def run_transaction(db_engine: SAEngine, txn_func, region=None, max_retries=10):
                 # SUCCESS - mark region as connected
                 if region:
                     region_status.labels(region=region).set(1)
+
+                # If we successfully connected after being disconnected, set reconnect flag
+                if was_disconnected:
+                    _reconnected = True
 
                 return result
 
@@ -320,6 +330,8 @@ def run_transaction(db_engine: SAEngine, txn_func, region=None, max_retries=10):
                 if region:
                     region_status.labels(region=region).set(0)
 
+                was_disconnected = True  # Track that we lost connection
+
                 pg_code = ''
                 if e.orig.sqlstate is not None:
                     pg_code = f" (PG Error: {e.orig.sqlstate})"
@@ -331,3 +343,15 @@ def run_transaction(db_engine: SAEngine, txn_func, region=None, max_retries=10):
             # Raise everything else
             else:
                 raise
+
+
+def check_reconnected():
+    """
+    Check if we've reconnected since last check and reset the flag
+    Returns True if we reconnected, False otherwise
+    """
+    global _reconnected
+    if _reconnected:
+        _reconnected = False
+        return True
+    return False
