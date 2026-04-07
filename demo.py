@@ -325,8 +325,8 @@ def main():
     db_engine = create_engine(
         DB_URI,
         connect_args={
-            "connect_timeout": 2,        # 2 second connection timeout
-            "options": "-c statement_timeout=2000"  # 2 second query timeout (in milliseconds)
+            "connect_timeout": 1,        # 1 second connection timeout
+            "options": "-c statement_timeout=200"  # 200ms query timeout for near-instant failover
         },
         pool_pre_ping=True  # Test connections before using them
     )
