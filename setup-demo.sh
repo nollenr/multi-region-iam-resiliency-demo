@@ -456,5 +456,14 @@ if [ ! -x "./demo.py" ]; then
     chmod +x ./demo.py
 fi
 
-# Start demo.py in foreground
-./demo.py
+# Start demo.py in background
+nohup python3.11 -u ./demo.py > demo.out 2>&1 &
+DEMO_PID=$!
+
+echo -e "${GREEN}✓ Demo started in background${NC}"
+echo "  PID: $DEMO_PID"
+echo "  Output: demo.out"
+echo "  Errors: demo.out (combined)"
+echo ""
+echo "To view output: tail -f demo.out"
+echo "To stop demo: kill $DEMO_PID"

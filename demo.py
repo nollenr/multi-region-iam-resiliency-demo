@@ -326,7 +326,7 @@ def main():
         DB_URI,
         connect_args={
             "connect_timeout": 1,        # 1 second connection timeout
-            "options": "-c statement_timeout=200"  # 200ms query timeout for near-instant failover
+            "options": "-c statement_timeout=1000"  # 1 second query timeout - fast failover without canceling normal queries
         },
         pool_pre_ping=True  # Test connections before using them
     )
