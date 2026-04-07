@@ -393,17 +393,16 @@ def main():
 
     # Main demo loop
     while True:
-        # Check if we reconnected and need to update node_id
-        if check_reconnected():
-            new_node_id = run_transaction(
-                db_engine,
-                lambda conn: get_node_id(conn),
-                region=region
-            )
-            if new_node_id != node_id:
-                print(f"Reconnected to different node: {node_id} -> {new_node_id}")
-                node_id = new_node_id
-                stats.set_connection_info(region, node_id)
+        # Check node_id every iteration to instantly detect load balancer routing changes
+        new_node_id = run_transaction(
+            db_engine,
+            lambda conn: get_node_id(conn),
+            region=region
+        )
+        if new_node_id != node_id:
+            print(f"Now connected to different node: {node_id} -> {new_node_id}")
+            node_id = new_node_id
+            stats.set_connection_info(region, node_id)
 
         demo_flow_once(db_engine, user_ids, role_ids, op_timer, stats, region)
         stats.display_if_ready()
