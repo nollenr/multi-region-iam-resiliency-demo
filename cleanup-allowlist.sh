@@ -81,19 +81,19 @@ if [ "$CONFIRM" != "yes" ]; then
 fi
 
 echo ""
-echo -e "${YELLOW}Deleting entries...${NC}"
+echo -e "${YELLOW}Deleting entries one by one...${NC}"
 
 # Delete each entry (except the ones we want to keep)
 DELETED=0
 FAILED=0
 
 echo "$RESPONSE" | jq -r --argjson keep "$(printf '%s\n' "${KEEP_ENTRIES[@]}" | jq -R . | jq -s .)" \
-    '.allowlist[] | select([.name] | inside($keep) | not) | "\(.allowlist_entry_id)|\(.name)|\(.cidr_ip)/\(.cidr_mask)"' | \
-while IFS='|' read -r entry_id name cidr; do
-    echo -n "  Deleting: $name ($cidr)... "
+    '.allowlist[] | select([.name] | inside($keep) | not) | "\(.cidr_ip)|\(.cidr_mask)|\(.name)"' | \
+while IFS='|' read -r cidr_ip cidr_mask name; do
+    echo -n "  Deleting: $name ($cidr_ip/$cidr_mask)... "
 
     DELETE_RESPONSE=$(curl -s -w "\n%{http_code}" --request DELETE \
-        --url "https://cockroachlabs.cloud/api/v1/clusters/${CLUSTER_ID}/networking/allowlist/${entry_id}" \
+        --url "https://cockroachlabs.cloud/api/v1/clusters/${CLUSTER_ID}/networking/allowlist/${cidr_ip}/${cidr_mask}" \
         --header "Authorization: Bearer ${COCKROACH_API_KEY}")
 
     HTTP_CODE=$(echo "$DELETE_RESPONSE" | tail -n1)
