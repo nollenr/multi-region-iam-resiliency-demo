@@ -252,7 +252,8 @@ if [ -n "$FIRST_IP" ] && [ "$PRIVATE_IP" == "$FIRST_IP" ]; then
         python3.11 sql/generate_data.py --regions $REGIONS_SPACE_SEP
         if [ $? -ne 0 ]; then
             echo -e "${RED}Error: Failed to generate data${NC}"
-            exit 1
+            echo "Continuing anyway to show full output..."
+            # exit 1
         fi
         echo -e "${GREEN}✓ Demo data generated${NC}"
         echo ""
@@ -286,7 +287,8 @@ if [ -n "$FIRST_IP" ] && [ "$PRIVATE_IP" == "$FIRST_IP" ]; then
         cockroach sql --url "$CRDB_URI" < sql/schema.sql
         if [ $? -ne 0 ]; then
             echo -e "${RED}Error: Failed to install schema${NC}"
-            exit 1
+            echo "Continuing anyway to show full output..."
+            # exit 1
         fi
         echo -e "${GREEN}✓ Schema installed${NC}"
         echo ""
@@ -296,7 +298,8 @@ if [ -n "$FIRST_IP" ] && [ "$PRIVATE_IP" == "$FIRST_IP" ]; then
         cockroach sql --url "$CRDB_URI" < sql/data.sql
         if [ $? -ne 0 ]; then
             echo -e "${RED}Error: Failed to load data${NC}"
-            exit 1
+            echo "Continuing anyway to show full output..."
+            # exit 1
         fi
         echo -e "${GREEN}✓ Data loaded${NC}"
         echo ""
