@@ -332,6 +332,10 @@ def run_transaction(db_engine: SAEngine, txn_func, region=None, max_retries=10):
 
                 was_disconnected = True  # Track that we lost connection
 
+                # Dispose of the connection pool to force new connections on retry
+                # This prevents reusing stale connections to dead nodes
+                db_engine.dispose()
+
                 pg_code = ''
                 if e.orig.sqlstate is not None:
                     pg_code = f" (PG Error: {e.orig.sqlstate})"

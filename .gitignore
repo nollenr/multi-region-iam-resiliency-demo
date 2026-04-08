@@ -38,6 +38,7 @@ Thumbs.db
 .env
 demo.env.local
 exports.sh
+sql_notes.txt
 
 # Claude Code memory
 .claude/

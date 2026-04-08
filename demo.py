@@ -326,14 +326,14 @@ def main():
         DB_URI,
         connect_args={
             "connect_timeout": 2,        # 2 second connection timeout
-            "options": "-c statement_timeout=5000",  # 5 second query timeout
+            "options": "-c statement_timeout=3000",  # 3 second query timeout
             "keepalives": 1,             # Enable TCP keepalives
             "keepalives_idle": 5,        # Start keepalives after 5 seconds of idle
             "keepalives_interval": 2,    # Send keepalive every 2 seconds
             "keepalives_count": 2        # Declare dead after 2 failed keepalives
         },
-        pool_pre_ping=False,  # Disable pre-ping, rely on keepalives instead
-        pool_recycle=30  # Recycle connections every 30 seconds to detect stale connections
+        pool_pre_ping=False,  # Disable pre-ping, db_engine.dispose() handles stale connections
+        # pool_recycle=30  # Recycle connections every 30 seconds to detect stale connections
     )
 
     # Query the gateway region and node ID from the database
@@ -410,7 +410,13 @@ def main():
             stats.set_connection_info(region, node_id)
 
         demo_flow_once(db_engine, user_ids, role_ids, op_timer, stats, region)
-        stats.display_if_ready()
+
+        # Skip stats display if we reconnected (stats during reconnection are misleading)
+        if check_reconnected():
+            stats.calc_and_reset_stats()  # Clear the stats from the reconnection period
+            stats.reporting_timer.start()  # Reset the reporting timer
+        else:
+            stats.display_if_ready()
 
 
 if __name__ == '__main__':
