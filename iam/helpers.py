@@ -281,7 +281,8 @@ def run_transaction(db_engine: SAEngine, txn_func, region=None, max_retries=10):
     Handles:
     - Serialization failures (40001) - retry with backoff
     - Statement completion unknown (40003) - retry with backoff
-    - Connection errors - retry indefinitely with 1s delay
+    - Connection errors - retry indefinitely with delay
+    - TCP_USER_TIMEOUT (set in demo.py) aborts hung connections at kernel level
 
     Compatible with psycopg3 (psycopg package)
 

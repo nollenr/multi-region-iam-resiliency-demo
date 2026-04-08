@@ -18,7 +18,7 @@ import sys
 from uuid import uuid4
 
 from prometheus_client import start_http_server
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine as SAEngine
 from sqlalchemy.sql import text
 
@@ -326,15 +326,61 @@ def main():
         DB_URI,
         connect_args={
             "connect_timeout": 2,        # 2 second connection timeout
-            "options": "-c statement_timeout=3000",  # 3 second query timeout
+            "options": "-c statement_timeout=3000",  # Server-side timeout (if server alive)
             "keepalives": 1,             # Enable TCP keepalives
             "keepalives_idle": 5,        # Start keepalives after 5 seconds of idle
             "keepalives_interval": 2,    # Send keepalive every 2 seconds
-            "keepalives_count": 2        # Declare dead after 2 failed keepalives
+            "keepalives_count": 2,       # Declare dead after 2 failed keepalives
         },
         pool_pre_ping=False,  # Disable pre-ping, db_engine.dispose() handles stale connections
-        # pool_recycle=30  # Recycle connections every 30 seconds to detect stale connections
     )
+
+    # Set TCP_USER_TIMEOUT on the socket for fast failover (Linux only)
+    @event.listens_for(db_engine, "connect")
+    def set_tcp_user_timeout(dbapi_conn, connection_record):
+        """Set TCP_USER_TIMEOUT socket option for fast failure detection"""
+        try:
+            import ctypes
+            import socket
+
+            # Get the underlying socket from psycopg3 connection
+            if hasattr(dbapi_conn, 'pgconn') and hasattr(dbapi_conn.pgconn, 'socket'):
+                sock_fd = dbapi_conn.pgconn.socket
+
+                # TCP_USER_TIMEOUT = 18 (Linux kernel constant)
+                # IPPROTO_TCP = 6
+                TCP_USER_TIMEOUT = 18
+                IPPROTO_TCP = 6
+                SOL_SOCKET = 1
+                timeout_ms = 10000
+
+                # Use ctypes to call setsockopt directly on the FD
+                # int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen)
+                libc = ctypes.CDLL("libc.so.6")
+                timeout_val = ctypes.c_int(timeout_ms)
+                result = libc.setsockopt(
+                    sock_fd,                          # socket fd
+                    IPPROTO_TCP,                      # level (TCP)
+                    TCP_USER_TIMEOUT,                 # option name
+                    ctypes.byref(timeout_val),        # option value
+                    ctypes.sizeof(timeout_val)        # option length
+                )
+
+                if result == 0:
+                    print(f"✓ Set TCP_USER_TIMEOUT=10s on socket fd={sock_fd}")
+                else:
+                    errno = ctypes.get_errno()
+                    print(f"✗ setsockopt failed with errno={errno}")
+            else:
+                print(f"✗ Connection object structure unexpected - cannot set TCP_USER_TIMEOUT")
+                print(f"  dbapi_conn type: {type(dbapi_conn)}")
+                print(f"  has pgconn: {hasattr(dbapi_conn, 'pgconn')}")
+                if hasattr(dbapi_conn, 'pgconn'):
+                    print(f"  has socket: {hasattr(dbapi_conn.pgconn, 'socket')}")
+        except Exception as e:
+            print(f"✗ Could not set TCP_USER_TIMEOUT: {e}")
+            import traceback
+            traceback.print_exc()
 
     # Query the gateway region and node ID from the database
     # If DEMO_REGION is set, use it for connectivity tracking during initial connection
