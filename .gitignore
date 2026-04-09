@@ -39,6 +39,7 @@ Thumbs.db
 demo.env.local
 exports.sh
 sql_notes.txt
+demo.py.202604081503
 
 # Claude Code memory
 .claude/
