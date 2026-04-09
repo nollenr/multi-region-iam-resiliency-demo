@@ -18,6 +18,8 @@
 ### Before the Presentation
 
 - [ ] All three regional apps are running and connected
+- [ ] Backups on the CRDB Cluster are off
+- [ ] Maintenance Window on the CRDB Cluster are set to not interfere with the demo
 - [ ] Grafana is accessible at `http://<primary-ip>:3000`
 - [ ] All dashboards are displaying metrics (check last 5 minutes)
 - [ ] Terminal windows arranged for screen sharing:
