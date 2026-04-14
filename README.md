@@ -315,6 +315,11 @@ All dashboards auto-update with your actual region names during setup.
 - If persistent, check cluster status in Cloud Console
 - Verify IP allowlist includes this server's public IP
 
+**Fast single-node failure detection**
+- The app uses aggressive client-side connection settings to notice dead node connections sooner during the demo.
+- Current settings in `demo.py` include `connect_timeout=2`, `statement_timeout=2500`, and `tcp_user_timeout=2500`.
+- This improves how quickly the app realizes it needs to reconnect after a node disappears, while keeping the existing retry loop behavior.
+
 **No metrics in Grafana**
 - Check demo app is running: `ps aux | grep demo.py`
 - Verify Prometheus can scrape: `http://<ip>:9090/targets`
@@ -401,3 +406,24 @@ Original backup files (`.bak.original`) ensure safe re-runs.
 ## License
 
 This demo is provided for demonstration purposes.
+
+# Reader's Digest Condensed Version
+
+- [ ] Create the cluster -- wait for the cluster creation to complete.
+- [ ] turn off backups and set the maintenance window (Monday at 4am UTC / Sunday 9pm PT) and delay upgrades for 90 days.  Set delete protection on.  
+- [ ] Find your API key and choose "Edit Roles" from the Action List.  Add a new role with scope of the cluster (nollen-iam-demo for example) and role of "Cluster Admin".
+- [ ] Create a user / copy password to sql_notes.txt
+- [ ] Copy the cluster id (top of cluster UI) and paste into sql_notes.txt.  Both in the export - variable and in the setup-demo command!   
+- [ ] Using notskope.com, get both IPs and add them to the IP Allow List in the Cluster UI
+- [ ] Check terraform.tfvars to be sure the regions match your cluster regions
+- [ ] Using the connect string for linux, update terraform.tvfars with the connection string for - each region.  Be sure to match the region with the correct string in terraform.tfvars.
+- [ ] You may want to be sure the CRDB version in terraform.tfvars matches the version of your - cluster.
+- [ ] Roll out the terraform
+- [ ] Connect to the primary region app node
+- [ ] `tail -f /var/log/cloud-init-output.log` until "complete" message with "Up ... seconds"
+- [ ] Reconnect or source the .bashrc
+- [ ] paste in the  top line from sql_notes.txt (setup-demo.sh).  This will kick off the setup, including the database schema.
+- [ ] ssh to each of the other nodes and paste the setup-demo same line.
+- [ ] Open 2 http tabs:  
+  - [ ] Primary Cluster IP  + 9090 navigate to status/target health
+  - [ ] Primary Cluster IP + 3000 (admin/admin) / now -2m

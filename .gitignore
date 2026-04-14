@@ -43,3 +43,6 @@ demo.py.202604081503
 
 # Claude Code memory
 .claude/
+
+# Codex local memory
+.codex/
