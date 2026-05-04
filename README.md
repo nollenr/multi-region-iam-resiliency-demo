@@ -409,21 +409,48 @@ This demo is provided for demonstration purposes.
 
 # Reader's Digest Condensed Version
 
-- [ ] Create the cluster -- wait for the cluster creation to complete.
-- [ ] turn off backups and set the maintenance window (Monday at 4am UTC / Sunday 9pm PT) and delay upgrades for 90 days.  Set delete protection on.  
-- [ ] Find your API key and choose "Edit Roles" from the Action List.  Add a new role with scope of the cluster (nollen-iam-demo for example) and role of "Cluster Admin".
-- [ ] Create a user / copy password to sql_notes.txt
-- [ ] Copy the cluster id (top of cluster UI) and paste into sql_notes.txt.  Both in the export - variable and in the setup-demo command!   
-- [ ] Using notskope.com, get both IPs and add them to the IP Allow List in the Cluster UI
-- [ ] Check terraform.tfvars to be sure the regions match your cluster regions
-- [ ] Using the connect string for linux, update terraform.tvfars with the connection string for - each region.  Be sure to match the region with the correct string in terraform.tfvars.
-- [ ] You may want to be sure the CRDB version in terraform.tfvars matches the version of your - cluster.
-- [ ] Roll out the terraform
-- [ ] Connect to the primary region app node
-- [ ] `tail -f /var/log/cloud-init-output.log` until "complete" message with "Up ... seconds"
-- [ ] Reconnect or source the .bashrc
-- [ ] paste in the  top line from sql_notes.txt (setup-demo.sh).  This will kick off the setup, including the database schema.
-- [ ] ssh to each of the other nodes and paste the setup-demo same line.
-- [ ] Open 2 http tabs:  
-  - [ ] Primary Cluster IP  + 9090 navigate to status/target health
-  - [ ] Primary Cluster IP + 3000 (admin/admin) / now -2m
+- [x] Create the cluster -- wait for the cluster creation to complete.
+- [x] turn off backups
+- [x] set the maintenance window (Monday at 4am UTC / Sunday 9pm PT) and delay upgrades for 90 days.  
+- [x] Set delete protection on.  
+- [x] Find your API key and choose "Edit Roles" from the Action List.  Add a new role with scope of the cluster (nollen-iam-demo for example) and role of "Cluster Admin".
+- [x] Create a user / copy password to sql_notes.txt
+- [x] Copy the cluster id (top of cluster UI) and paste into sql_notes.txt.  Both in the export - variable and in the setup-demo command!   
+- [x] Using notskope.com, get both IPs and add them to the IP Allow List in the Cluster UI
+- [x] Check terraform.tfvars to be sure the regions match your cluster regions
+- [x] Using the connect string for linux, update terraform.tvfars with the connection string for - each region.  Be sure to match the region with the correct string in terraform.tfvars.
+- [x] You may want to be sure the CRDB version in terraform.tfvars matches the version of your - cluster.
+- [x] Roll out the terraform
+- [x] Connect to the primary region app node
+- [x] `tail -f /var/log/cloud-init-output.log` until "complete" message with "Up ... seconds"
+- [x] Reconnect or source the .bashrc
+- [x] `cd` to `crdb-multi-region-iam-demo`
+- [x] paste in the  top line from sql_notes.txt (setup-demo.sh).  This will kick off the setup, including the database schema.
+- [x] ssh to each of the other nodes and paste the setup-demo same line.
+- Open 5 Firefox http tabs:
+  - [ ] Slides
+  - [ ] Database UI
+  - [ ] cloudping.co
+  - [x] Primary Cluster IP  + 9090 navigate to status/target health
+  - [x] Primary Cluster IP + 3000 (admin/admin) / Change the Time Range to now -2m
+- [x] Run Queries in sql_notes to have the information handy, including system.locations inserts!  
+  - [x] source demo-env.sh
+  - [x] CRDB
+  - [x] Install system.locations!
+- Open cloudping and Database UI
+- chmod +x
+  - [ ] rollback-online-schema-change.sh
+  - [ ] run-online-schema-change.sh
+- Open https://docs.google.com/presentation/d/1JCN_tjBfSOfS37ht0zshIOGdsOfJZRPHdlk_ybJM8yo/edit?slide=id.g2b6c6946b7e_0_2297#slide=id.g2b6c6946b7e_0_2297
+
+
+
+
+Close all non-essential tabs
+1. The "Native Shortcut" (Fastest)
+- This is the "old school" way, but it's still the most reliable and doesn't require any setup.
+- To Save: Press Ctrl + Shift + D (Windows) or Cmd + Shift + D (Mac).
+- Action: Chrome will ask you to name a folder. Call it "Pre-Demo Tabs" and save it to your Bookmarks Bar.
+- To Reopen: When your demo is over, just right-click that folder in your Bookmarks Bar and select "Open All in New Window."
+
+Turn on Do Not Disturb and Close Slack
