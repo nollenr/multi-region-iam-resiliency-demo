@@ -134,9 +134,11 @@ SSH into **each secondary region** app server and run the same command:
 The script creates `demo-env.sh` with all necessary environment variables:
 
 ```bash
-# On subsequent logins, just source this file:
-source demo-env.sh
+# In your current shell, or on subsequent logins, source this file:
+source ./demo-env.sh
 ```
+
+`./setup-demo.sh` can export variables for the demo process it launches, but it cannot modify the parent shell you ran it from. If you want `./demo.py`, `cockroach sql`, or `./disrupt.sh` to use those values in your own shell, run `source ./demo-env.sh`.
 
 ## Running the Demo
 
@@ -308,12 +310,25 @@ All dashboards auto-update with your actual region names during setup.
 - Check SQL user credentials are correct
 - Ensure cluster regions match `DATABASE_REGIONS`
 
+**"permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"**
+- This is the real blocker if Prometheus/Grafana startup fails; the `version` warning from `docker-compose.yml` is harmless
+- Make sure Docker is running: `sudo systemctl start docker`
+- Grant the current user Docker access: `sudo usermod -aG docker $USER`
+- Refresh group membership with `newgrp docker` or by logging out and back in
+- Verify with `docker ps`, then rerun `./setup-demo.sh ...`
+
 ### Demo App Issues
 
 **"Connection lost, attempting to reconnect..."**
 - Expected during region disruptions
 - If persistent, check cluster status in Cloud Console
 - Verify IP allowlist includes this server's public IP
+
+**"Access to crdb_internal and system is restricted"**
+- The demo only uses `crdb_internal.node_id()` for display, so the app can continue without it
+- By default, `demo.py` now requests `allow_unsafe_internals=true` for the session because this is a demo environment
+- If your cluster still blocks it, the app will continue and show `Node: N/A (Serverless)` instead of failing
+- You can disable the request explicitly with `export ALLOW_UNSAFE_INTERNALS=false`
 
 **Fast single-node failure detection**
 - The app uses aggressive client-side connection settings to notice dead node connections sooner during the demo.

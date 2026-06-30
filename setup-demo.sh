@@ -15,6 +15,9 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+DOCKER_USE_SUDO=false
+COMPOSE_STYLE=""
+
 # Usage function
 usage() {
     echo "Usage: $0 <password> <api-key> <cluster-id>"
@@ -37,6 +40,60 @@ usage() {
     echo "  export DATABASE_REGIONS=\"aws-us-east-2,aws-ca-central-1,aws-us-west-2\""
     echo "  export APP_PRIVATE_IP_LIST=\"10.0.1.5,10.0.2.5,10.0.3.5\""
     echo "  $0 \"mypassword\" \"your-api-key-here\" \"nollen-iam-demo-w7v\""
+    exit 1
+}
+
+find_compose_command() {
+    if command -v docker &> /dev/null && docker compose version &> /dev/null; then
+        COMPOSE_STYLE="plugin"
+        return 0
+    fi
+
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_STYLE="standalone"
+        return 0
+    fi
+
+    return 1
+}
+
+run_compose() {
+    if [ "$COMPOSE_STYLE" == "plugin" ]; then
+        if [ "$DOCKER_USE_SUDO" = true ]; then
+            sudo docker compose "$@"
+        else
+            docker compose "$@"
+        fi
+    else
+        if [ "$DOCKER_USE_SUDO" = true ]; then
+            sudo docker-compose "$@"
+        else
+            docker-compose "$@"
+        fi
+    fi
+}
+
+verify_docker_access() {
+    if docker info &> /dev/null; then
+        DOCKER_USE_SUDO=false
+        return 0
+    fi
+
+    if sudo -n docker info &> /dev/null; then
+        DOCKER_USE_SUDO=true
+        echo -e "${YELLOW}Warning: Docker requires sudo on this host. Using sudo for Prometheus/Grafana startup.${NC}"
+        return 0
+    fi
+
+    echo -e "${RED}Error: Docker is installed, but the current user cannot access /var/run/docker.sock${NC}"
+    echo "Run the following on the EC2 host, then retry setup:"
+    echo "  sudo usermod -aG docker \$USER"
+    echo "  newgrp docker"
+    echo "  docker ps"
+    echo ""
+    echo "If Docker is not running yet, start it first:"
+    echo "  sudo systemctl start docker"
+    echo "  sudo systemctl enable docker"
     exit 1
 }
 
@@ -126,9 +183,9 @@ else
 fi
 echo ""
 
-# Check if docker-compose is available (only needed for first server, but good to check)
-if ! command -v docker-compose &> /dev/null; then
-    echo -e "${YELLOW}Warning: docker-compose not found. This is only required on the first server.${NC}"
+# Check if Docker Compose is available (only needed for first server, but good to check)
+if ! find_compose_command; then
+    echo -e "${YELLOW}Warning: Docker Compose not found. This is only required on the first server.${NC}"
 fi
 
 # Get private IP using AWS metadata service (IMDSv2)
@@ -209,6 +266,8 @@ echo ""
 # Export CRDB_URL
 export CRDB_URL="$CRDB_URL"
 echo -e "${GREEN}✓ CRDB_URL exported${NC}"
+echo "  Note: this export is only visible inside setup-demo.sh and the demo process it starts."
+echo "  To use it in your current shell, run: source ./demo-env.sh"
 echo ""
 
 # Create CRDB_URI for cockroach CLI (stays as postgresql, connects to defaultdb)
@@ -224,6 +283,7 @@ echo ""
 # Export CRDB_URI
 export CRDB_URI="$CRDB_URI"
 echo -e "${GREEN}✓ CRDB_URI exported${NC}"
+echo "  Note: this export does not persist after setup-demo.sh exits."
 echo ""
 
 # Check if this is the first server (only if IP list was provided)
@@ -389,14 +449,22 @@ if [ -n "$FIRST_IP" ] && [ "$PRIVATE_IP" == "$FIRST_IP" ]; then
     echo "  All dashboards updated with new region names"
     echo ""
 
-    # Start docker-compose (stop first to ensure fresh config is loaded)
-    echo "Starting Prometheus and Grafana..."
-    docker-compose down 2>/dev/null || true  # Stop if running, ignore errors if not
-    if ! docker-compose up -d; then
-        echo -e "${RED}Error: docker-compose failed${NC}"
+    if ! find_compose_command; then
+        echo -e "${RED}Error: Docker Compose is required on the first server but was not found${NC}"
+        echo "Install Docker Compose or the Docker Compose plugin, then rerun setup."
         exit 1
     fi
-    echo -e "${GREEN}✓ docker-compose started${NC}"
+
+    verify_docker_access
+
+    # Start Docker Compose (stop first to ensure fresh config is loaded)
+    echo "Starting Prometheus and Grafana..."
+    run_compose down 2>/dev/null || true  # Stop if running, ignore errors if not
+    if ! run_compose up -d; then
+        echo -e "${RED}Error: Docker Compose failed${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Prometheus and Grafana started${NC}"
     echo ""
 else
     if [ -z "$IPS" ]; then
@@ -431,16 +499,18 @@ cat > demo-env.sh << EOF
 # Demo environment variables
 # Source this file to set up your environment: source demo-env.sh
 
-export COCKROACH_API_KEY="$COCKROACH_API_KEY"
-export CLUSTER_ID="$CLUSTER_ID"
-export CRDB_URL="$CRDB_URL"
-export CRDB_URI="$CRDB_URI"
-export DEMO_REGION="$DEMO_REGION"
+# Note: exports inside setup-demo.sh do not modify your parent shell.
 EOF
+
+printf 'export COCKROACH_API_KEY=%q\n' "$COCKROACH_API_KEY" >> demo-env.sh
+printf 'export CLUSTER_ID=%q\n' "$CLUSTER_ID" >> demo-env.sh
+printf 'export CRDB_URL=%q\n' "$CRDB_URL" >> demo-env.sh
+printf 'export CRDB_URI=%q\n' "$CRDB_URI" >> demo-env.sh
+printf 'export DEMO_REGION=%q\n' "$DEMO_REGION" >> demo-env.sh
 
 chmod 644 demo-env.sh
 echo -e "${GREEN}✓ demo-env.sh created${NC}"
-echo "  To reuse these variables: source demo-env.sh"
+echo "  To load these variables into your current shell: source ./demo-env.sh"
 echo ""
 
 # Start demo.py

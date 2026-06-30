@@ -20,6 +20,7 @@ from uuid import uuid4
 from prometheus_client import start_http_server
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine as SAEngine
+from sqlalchemy.exc import DatabaseError
 from sqlalchemy.sql import text
 
 from iam.transactions import (
@@ -51,9 +52,12 @@ REGIONS = ['aws-us-east-1', 'aws-us-east-2', 'aws-us-west-2']
 # Optional: Pre-set region for connectivity tracking before DB connection
 # If not set, region will be auto-detected from database (but status won't show until connected)
 DEMO_REGION = os.getenv('DEMO_REGION')  # e.g., 'aws-us-east-1'
+ALLOW_UNSAFE_INTERNALS = os.getenv('ALLOW_UNSAFE_INTERNALS', 'true').lower() == 'true'
 
 # Check for CRDB_URL first, then DB_URI, then use default
-DB_URI = os.getenv('CRDB_URL') or os.getenv('DB_URI') or 'cockroachdb://root@127.0.0.1:26257/iam_demo?application_name=iam_demo'
+ENV_DB_URI = os.getenv('CRDB_URL') or os.getenv('DB_URI')
+USING_DEFAULT_DB_URI = ENV_DB_URI is None
+DB_URI = ENV_DB_URI or 'cockroachdb://root@127.0.0.1:26257/iam_demo?application_name=iam_demo'
 
 # Ensure we're using psycopg (psycopg3) instead of psycopg2
 if DB_URI.startswith('cockroachdb://'):
@@ -301,9 +305,29 @@ def demo_flow_once(db_engine: SAEngine, user_ids: list, role_ids: list,
     stats.add_to_stats(DemoStats.OP_READ_SESSION_AOST, op_timer.stop())
 
 
+def try_get_node_id(db_engine: SAEngine, region: str):
+    """Best-effort node lookup for demo display; continue if Cloud blocks internals."""
+    try:
+        return run_transaction(
+            db_engine,
+            lambda conn: get_node_id(conn),
+            region=region
+        )
+    except DatabaseError as e:
+        message = str(e.orig) if getattr(e, 'orig', None) is not None else str(e)
+        if 'allow_unsafe_internals' in message or 'Access to crdb_internal and system is restricted' in message:
+            print("Warning: node_id lookup is blocked on this cluster.")
+            print("Continuing without node display. Set ALLOW_UNSAFE_INTERNALS=true if your cluster permits it.")
+            return None
+        raise
+
+
 def main():
     """Main demo loop"""
     print("IAM Demo starting...")
+    if USING_DEFAULT_DB_URI:
+        print("Warning: CRDB_URL/DB_URI not set in this shell; falling back to localhost default.")
+        print("If setup-demo.sh already ran, load the generated env file with: source ./demo-env.sh")
     print(f"Database URI: {DB_URI}")
     print()
 
@@ -326,7 +350,10 @@ def main():
         DB_URI,
         connect_args={
             "connect_timeout": 2,        # 2 second connection timeout
-            "options": "-c statement_timeout=2500",  # 2.5 second query timeout
+            "options": (
+                "-c statement_timeout=2500"
+                + (" -c allow_unsafe_internals=true" if ALLOW_UNSAFE_INTERNALS else "")
+            ),  # 2.5 second query timeout, optionally enable demo-only internals
             "keepalives": 1,             # Enable TCP keepalives
             "keepalives_idle": 5,        # Start keepalives after 5 seconds of idle
             "keepalives_interval": 2,    # Send keepalive every 2 seconds
@@ -355,11 +382,7 @@ def main():
     from iam.helpers import region_status
     region_status.labels(region=region).set(1)  # We're connected if we got here
 
-    node_id = run_transaction(
-        db_engine,
-        lambda conn: get_node_id(conn),
-        region=region  # Now pass region for status tracking
-    )
+    node_id = try_get_node_id(db_engine, region)
 
     # Set connection info for stats display
     stats.set_connection_info(region, node_id)
@@ -400,12 +423,8 @@ def main():
     # Main demo loop
     while True:
         # Check node_id every iteration to instantly detect load balancer routing changes
-        new_node_id = run_transaction(
-            db_engine,
-            lambda conn: get_node_id(conn),
-            region=region
-        )
-        if new_node_id != node_id:
+        new_node_id = try_get_node_id(db_engine, region)
+        if new_node_id is not None and new_node_id != node_id:
             print(f"Now connected to different node: {node_id} -> {new_node_id}")
             node_id = new_node_id
             stats.set_connection_info(region, node_id)
