@@ -5,7 +5,7 @@ C:\Users\RonNollen\Documents\Ron's Stuff\multi-region-demo-j4-adapted
 
 tools:
 CockroachDB 
-latest version of python
+Python 3.11
 psycopg (psycopg3)
 sqlalchemy
 
@@ -44,6 +44,9 @@ The regions should be passed in as a parameter wherever they're needed.   The de
 
 --------------------------------
 Complete Demo Recreation Instructions
+Current Tested Baseline
+This repo is tested against CockroachDB 26.2.2 for both the cluster and the client.
+
 Core Requirements
 Create a multi-region IAM demo for CockroachDB to demonstrate resiliency during region failures. Target audience: Ory and Teleport executives (high-stakes).
 
@@ -84,6 +87,7 @@ Demo Flow (Per Iteration)
 Each iteration simulates a user session with these operations:
 
 Login - Create session (regional write)
+Optional anomaly detection - Check whether the login is unusual using vector similarity
 Read user info (global read)
 Update last login (global write)
 Read role/permissions (global read)
@@ -130,12 +134,15 @@ Check for CRDB_URL first, then DB_URI, then use default
 Connection string: cockroachdb://root@<haproxy>:26257/iam_demo?application_name=iam_demo
 Region auto-detected, no manual configuration
 METRICS_PORT for Prometheus (default: 8000)
+ALLOW_UNSAFE_INTERNALS defaults to true for this demo so node display can use crdb_internal.node_id() when permitted
+Current demo client tuning uses connect_timeout=2, statement_timeout=2500, and tcp_user_timeout=2500
 Prometheus Integration
 Metrics Exposed:
 
 operation_latency - Histogram with labels: operation, table_type, region
 operation_counter - Counter with labels: operation, table_type, region
 region_status - Gauge with labels: region
+anomaly_counter - Counter with labels: region, severity
 HTTP server on port 8000 (configurable via METRICS_PORT env var)
 Helpers.py Updates:
 
@@ -160,9 +167,9 @@ METRICS_PORT = int(os.getenv('METRICS_PORT', '8000'))
 start_http_server(METRICS_PORT)
 Low Cardinality Design:
 
-Only use bounded labels: operation (9 types), table_type (3 types), region (3 regions)
+Only use bounded labels: operation (10 types), table_type (4 types), region (3 regions), severity (3 levels)
 NEVER use user_id, session_id, or other unbounded values as labels
-Total time series: ~489 (completely safe)
+Total time series remain safely bounded
 Grafana + Prometheus Setup
 Docker Compose Structure:
 
@@ -194,8 +201,8 @@ Dashboard Loading:
 Datasource UID mismatch causes "No data" - must be uid: prometheus
 If dashboard doesn't load, delete Grafana volume and restart
 Files must be readable (chmod 644) before starting Grafana
-Five Grafana Dashboards
-Create these 5 dashboards in grafana/dashboards/:
+Grafana Dashboards
+Create these core dashboards in grafana/dashboards/:
 
 iam-demo.json - "CockroachDB IAM Multi-Region Demo"
 
@@ -226,6 +233,9 @@ Top row: Fast operations (Global reads, Regional, RBR) - one panel per region
 Middle row: Global Writes only - one panel per region (separate Y-axis scale)
 Bottom row: Region status gauges
 Best for avoiding Y-axis scale issues (Global writes are 100x slower)
+iam-demo-with-anomaly.json - "CockroachDB IAM Multi-Region Demo with Anomaly Detection"
+
+Adds vector/anomaly panels for the optional login anomaly feature
 All graphs:
 
 Use milliseconds (multiply by 1000)
@@ -257,11 +267,12 @@ Project Structure
 │       ├── iam-demo-by-region.json
 │       ├── iam-demo-comparison.json
 │       ├── iam-demo-regional-overview.json
-│       └── iam-demo-regional-split.json
+│       ├── iam-demo-regional-split.json
+│       └── iam-demo-with-anomaly.json
 └── sql/
     ├── schema.sql          # Multi-region schema
     ├── generate_data.py    # Data generator (#!/usr/bin/env python3.11)
-    └── data.sql            # Generated (not in git)
+    └── data.sql            # Generated SQL; currently present in repo and can be regenerated
 Installation & Setup Steps
 Amazon Linux 2:
 
@@ -315,6 +326,7 @@ Volume persistence: Delete iam_demo_v2_grafana-data volume to force fresh load
 Region auto-detection: Use gateway_region(), don't require manual region config
 Node display: Show "N/A (Serverless)" when node_id is None
 Security groups: Port 8000 must be open from Prometheus to apps
+Disruption note: CockroachDB Cloud API may report node status as NOT_READY even when the DB Console has not yet marked the node Suspect/Dead
 Demo Message
 Focus on resiliency not IAM complexity. Key message: "IAM systems need to be always available - CockroachDB makes that possible."
 

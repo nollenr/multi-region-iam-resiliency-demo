@@ -2,6 +2,9 @@
 
 This demo demonstrates CockroachDB's multi-region capabilities and resiliency using an Identity and Access Management (IAM) use case. It showcases how authentication and authorization systems can continue to function even when an entire region fails.
 
+## CRDB Version
+This is tested and runs against 26.2.2, both Cluster and Client.
+
 ## What This Demo Shows
 
 The demo illustrates three types of multi-region tables with different latency characteristics:

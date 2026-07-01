@@ -74,6 +74,7 @@ check_env() {
 # List all nodes in the cluster
 list_nodes() {
     echo -e "${BLUE}Fetching cluster information...${NC}"
+    echo "Status source: CockroachDB Cloud API /api/v1/clusters/${CLUSTER_ID}/nodes"
     echo ""
 
     RESPONSE=$(curl -s --request GET \
@@ -122,6 +123,10 @@ list_nodes() {
 
     # Get unique regions
     REGIONS=$(echo "$RESPONSE" | jq -r '.nodes[].region_name' | sort -u)
+    HAS_NOT_READY=false
+    if echo "$RESPONSE" | jq -e '.nodes[] | select(.status == "NOT_READY")' > /dev/null 2>&1; then
+        HAS_NOT_READY=true
+    fi
 
     for region in $REGIONS; do
         echo -e "${YELLOW}Region: $region${NC}"
@@ -138,12 +143,21 @@ list_nodes() {
             # Display with status indicator
             if [ "$status" = "LIVE" ]; then
                 echo -e "  ${GREEN}✓${NC} $NODE_DISPLAY (${status})"
+            elif [ "$status" = "NOT_READY" ]; then
+                echo -e "  ${YELLOW}!${NC} $NODE_DISPLAY (${status} - Cloud API warning)"
             else
                 echo -e "  ${RED}✗${NC} $NODE_DISPLAY (${status})"
             fi
         done
         echo ""
     done
+
+    if [ "$HAS_NOT_READY" = true ]; then
+        echo -e "${YELLOW}Note:${NC} ${YELLOW}NOT_READY${NC} comes directly from the CockroachDB Cloud API."
+        echo "It can appear before, after, or without the DB Console showing a node as Suspect/Dead."
+        echo "Use the DB Console and SQL connectivity together to confirm whether the database node is actually unavailable."
+        echo ""
+    fi
 }
 
 # Disrupt entire region
